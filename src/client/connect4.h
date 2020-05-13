@@ -10,6 +10,7 @@ class Connect4 {
     int rows_, cols_, size_;
     char* cells_;
     char player_;
+    char adversary_;
 
     /* 
      * Counts the tokens of the player towards a direction (di, dj)
@@ -25,6 +26,7 @@ class Connect4 {
 
     bool setPlayer(char player);
     char getPlayer();
+    char getAdv();
 
     void print(std::ostream& os);
     friend std::ostream& operator<<(std::ostream& os, const Connect4& b);

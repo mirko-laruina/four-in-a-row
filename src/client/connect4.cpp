@@ -74,7 +74,7 @@ bool Connect4::checkWin(int row, int col, char player){
             int count_backward = Connect4::countNexts(player, row, col, -di, -dj);
 
             // N_IN_A_ROW minus 1 since the token just inserted is excluded
-            if(count_forward + count_backward == (N_IN_A_ROW - 1)){
+            if(count_forward + count_backward >= (N_IN_A_ROW - 1)){
                 return true;
             }
         }
@@ -92,6 +92,7 @@ bool Connect4::setPlayer(char player){
     if(player == 'X' || player == 'x'
         || player == 'O' || player == 'o'){
         player_ = toupper(player);
+        adversary_ = player_ == 'X' ? 'O' : 'X';
         return true;
     }
     return false;
@@ -101,27 +102,41 @@ char Connect4::getPlayer(){
     return player_;
 }
 
+char Connect4::getAdv(){
+    return adversary_;
+}
+
 ostream& operator<<(ostream& os, const Connect4& c){
-    for(int i = 0; i<(c.rows_+3)*3-2; ++i){
+    int width = 2+3*(c.rows_+1);
+    for(int i = 0; i<width; ++i){
         os<<'*';
     }
     os<<endl;
 
     for(int i = 0; i<c.rows_; ++i){
-        os<<"*  ";
+        os<<"*";
         for(int j = 0; j<c.cols_; ++j){
             //cout<<"i: "<<i<<" j: "<<j<<" value: "<<b.cells_[i*b.cols_+j]<<endl;
             if(c.cells_[i*c.cols_+j] == 0){
                 os<<"   ";
             } else {
-                os<< (c.cells_[i*c.cols_+j] == 'X' ? "\033[31mX" : "\033[34mO") <<"  ";
+                os<< " " << (c.cells_[i*c.cols_+j] == 'X' ? "\033[31mX" : "\033[34mO") <<" ";
             }
         }
         os<<"\033[0m*"<<endl;
     }
     
-    for(int i = 0; i<(c.rows_+3)*3-2; ++i){
+    for(int i = 0; i<width; ++i){
         os<<'*';
+    }
+    os<<endl;
+
+    for(int i = 0; i<width; ++i){
+        if( (i+1)%3 == 0  ){
+            os<<(i+1)/3;
+        } else {
+            os<<" ";
+        }
     }
     os<<endl;
     return os;

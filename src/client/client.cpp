@@ -21,6 +21,10 @@ void printWelcome(){
 int main(){
     // handle server selection on params here
     char in_buffer[256];
+    int choosen_col;
+    int adv_col;
+    int win;
+    srand(time(NULL));
 
     printWelcome();
     cout<<endl<<"Welcome to 4-in-a-row!"<<endl;
@@ -34,6 +38,33 @@ int main(){
         cin.getline(in_buffer, sizeof(in_buffer));
     } while (!c.setPlayer(in_buffer[0]));
     cout<<"You are playing as "<<c.getPlayer()<<endl;
+    cout<<"This is the starting board:"<<endl;
+    cout<<c;
 
+    do {
+        cout<<"NOTE: the game may never end"<<endl;
+        cout<<"Write the column you want to insert the token to"<<endl;
+        do {
+            cout<<"> ";
+            cin.getline(in_buffer, sizeof(in_buffer));
+            choosen_col = in_buffer[0]-'0';
+        } while(choosen_col < 0 || choosen_col > 7);
+        
+        win = c.play(choosen_col-1, c.getPlayer());
+        cout<<c;
+        if(win){
+            cout<<"Congratulation, you won!"<<endl;
+        }
+
+        if(!win){
+            adv_col = rand()%c.getNumCols();
+            cout<<"Your enemy has chosen column "<<adv_col<<endl;
+            win = c.play(rand()%c.getNumCols(), c.getAdv());
+            cout<<c;
+            if(win){
+                cout<<"Damn! You lost!"<<endl;
+            }
+        }
+    } while (!win);
     return 0;
 }
