@@ -16,11 +16,14 @@ Connect4::Connect4(int rows /* = 6 */, int columns /* = 7 */){
     memset(cells_, 0, size_);
 }
 
-bool Connect4::play(char player, int col){
+bool Connect4::play(int col, char player){
+    if(player == 0){
+        player = player_;
+    }
     for(int i = rows_-1; i>=0; --i){
         if(cells_[i*cols_+col] == 0){
             cells_[i*cols_+col] = player;
-            return checkWin(player, i, col);
+            return checkWin(i, col, player);
         }
     }
 
@@ -45,7 +48,7 @@ int Connect4::countNexts(char player, int row, int col, int di, int dj){
     return count;
 }
 
-bool Connect4::checkWin(char player, int row, int col){
+bool Connect4::checkWin(int row, int col, char player){
     /*
         Take any of the 4 possible directions
         count how many token of the same player there are
@@ -54,6 +57,9 @@ bool Connect4::checkWin(char player, int row, int col){
     */
 
     //cout<<"Checking ("<<row<<", "<<col<<")"<<endl; 
+    if(player == 0){
+        player = player_;
+    }
 
     for(int di = 1; di >= 0 && di != -1; --di){
         for(int dj = 1; dj >= 0 && di != -1; --dj){
@@ -82,6 +88,19 @@ int Connect4::getNumCols(){
     return cols_;
 }
 
+bool Connect4::setPlayer(char player){
+    if(player == 'X' || player == 'x'
+        || player == 'O' || player == 'o'){
+        player_ = toupper(player);
+        return true;
+    }
+    return false;
+}
+
+char Connect4::getPlayer(){
+    return player_;
+}
+
 ostream& operator<<(ostream& os, const Connect4& c){
     for(int i = 0; i<(c.rows_+3)*3-2; ++i){
         os<<'*';
@@ -95,10 +114,10 @@ ostream& operator<<(ostream& os, const Connect4& c){
             if(c.cells_[i*c.cols_+j] == 0){
                 os<<"   ";
             } else {
-                os<<c.cells_[i*c.cols_+j]<<"  ";
+                os<< (c.cells_[i*c.cols_+j] == 'X' ? "\033[31mX" : "\033[34mO") <<"  ";
             }
         }
-        os<<'*'<<endl;
+        os<<"\033[0m*"<<endl;
     }
     
     for(int i = 0; i<(c.rows_+3)*3-2; ++i){

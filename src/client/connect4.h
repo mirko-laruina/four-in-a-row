@@ -9,9 +9,10 @@
 class Connect4 {
     int rows_, cols_, size_;
     char* cells_;
+    char player_;
 
     /* 
-     * Counts the tokens of the player towerds a direction (di, dj)
+     * Counts the tokens of the player towards a direction (di, dj)
      * starting from  (row, col)  
      */
     int countNexts(char player, int row, int col, int di, int dj);
@@ -19,8 +20,11 @@ class Connect4 {
     public:
     Connect4(int rows = 6, int columns = 7);
     int getNumCols();
-    bool play(char player, int column);
-    bool checkWin(char player, int starting_row, int starting_col);
+    bool play(int column, char player = 0);
+    bool checkWin(int starting_row, int starting_col, char player = 0);
+
+    bool setPlayer(char player);
+    char getPlayer();
 
     void print(std::ostream& os);
     friend std::ostream& operator<<(std::ostream& os, const Connect4& b);
