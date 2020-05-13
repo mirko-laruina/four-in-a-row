@@ -18,11 +18,11 @@ class Board {
 
     public:
     Board(int rows = 6, int columns = 7);
-    int getNumRows();
+    int getNumCols();
     bool play(char player, int column);
     bool checkWin(char player, int starting_row, int starting_col);
 
-    void print();
+    void ugly_print(std::ostream& os);
     friend std::ostream& operator<<(std::ostream& os, const Board& b);
 };
 #endif //BOARD_H

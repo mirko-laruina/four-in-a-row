@@ -1,8 +1,29 @@
 #include "board.h"
 using namespace std;
 
-void Board::print(){
-    operator<<(cout, *this);
+void Board::ugly_print(ostream& os){
+    for(int i = 0; i<(rows_+3)*2-1; ++i){
+        os<<'*';
+    }
+    os<<endl;
+
+    for(int i = 0; i<rows_; ++i){
+        os<<"* ";
+        for(int j = 0; j<cols_; ++j){
+            //cout<<"i: "<<i<<" j: "<<j<<" value: "<<b.cells_[i*b.cols_+j]<<endl;
+            if(cells_[i*cols_+j] == 0){
+                os<<"  ";
+            } else {
+                os<<cells_[i*cols_+j]<<" ";
+            }
+        }
+        os<<'*'<<endl;
+    }
+    
+    for(int i = 0; i<(rows_+3)*2-1; ++i){
+        os<<'*';
+    }
+    os<<endl;
 }
 
 Board::Board(int rows /* = 6 */, int columns /* = 7 */){
@@ -78,33 +99,10 @@ bool Board::checkWin(char player, int row, int col){
 
 }
 
-int Board::getNumRows(){
-    return rows_;
+int Board::getNumCols(){
+    return cols_;
 }
 
 ostream& operator<<(ostream& os, const Board& b){
-    for(int i = 0; i<b.rows_+2; ++i){
-        os<<'-';
-    }
-    os<<endl;
-
-    for(int i = 0; i<b.rows_; ++i){
-        os<<'|';
-        for(int j = 0; j<b.cols_; ++j){
-            //cout<<"i: "<<i<<" j: "<<j<<" value: "<<b.cells_[i*b.cols_+j]<<endl;
-            if(b.cells_[i*b.cols_+j] == 0){
-                os<<" ";
-            } else {
-                os<<b.cells_[i*b.cols_+j];
-            }
-        }
-        os<<'|'<<endl;
-    }
-    
-    for(int i = 0; i<b.rows_+2; ++i){
-        os<<'-';
-    }
-    os<<endl;
-
     return os;
 }
