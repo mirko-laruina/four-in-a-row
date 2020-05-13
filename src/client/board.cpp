@@ -28,6 +28,23 @@ bool Board::play(char player, int col){
     return false;
 }
 
+int Board::countNexts(char player, int row, int col, int di, int dj){
+    int count = 0;
+    for(
+        int i = row+di, j = col+dj;
+        i >= 0 && j >= 0 && i < rows_ && j < cols_;
+        i+=di, j+=dj)
+    {
+        if(cells_[i*cols_+j] != player){
+            break;
+        } else {
+            cout<<i<<" "<<j<<endl;
+            count++;
+        }
+    }
+    return count;
+}
+
 bool Board::checkWin(char player, int row, int col){
     /*
         Take any of the 4 possible directions
@@ -36,64 +53,24 @@ bool Board::checkWin(char player, int row, int col){
         if more than 4, declare win
     */
 
-    //1 because our token is already counted
-    int count = 1;
-
     cout<<"Checking ("<<row<<", "<<col<<")"<<endl; 
 
-    for(int di = 0; di <= 1; ++di){
-        for(int dj = 0; dj <= 1; ++dj){
-            // (0, 0) is useless, but we miss a diagonal
-            // we can exploit the iteration
+    for(int di = 1; di >= 0 && di != -1; --di){
+        for(int dj = 1; dj >= 0 && di != -1; --dj){
+            // direction (0, 0) is useless, since we would miss diagonal (-1, 1)
+            // we can exploit the loop to iterate over that
             if(di == 0 && dj == 0){
                 di = -1;
                 dj = 1;
             }
 
-            //checking after the point
-            //Note: j can only increase
-            for(
-                int i = row+di, j = col+dj;
-                i >= 0 && i < rows_ && j < cols_;
-                i+=di, j+=dj)
-            {
-                if(cells_[i*cols_+j] != player){
-                    break;
-                } else if(count<3){
-                    cout<<">"<<i<<" "<<j<<endl;
-                    count++;
-                } else {
-                    cout<<">"<<i<<" "<<j<<endl;
-                    return true;
-                }
-            }
+            int count_forward = Board::countNexts(player, row, col, di, dj);
+            int count_backward = Board::countNexts(player, row, col, -di, -dj);
 
-            //check before
-            for(
-                int i = row-di, j = col-dj;
-                j >= 0 && i < rows_ && j < cols_;
-                i-=di, j-=dj
-                )
-            {
-
-                if(cells_[i*cols_+j] != player){
-                    break;
-                } else if(count<3){
-                    cout<<"<"<<i<<" "<<j<<endl;
-                    count++;
-                } else {
-                    cout<<"<"<<i<<" "<<j<<endl;
-                    return true;
-                }
+            // N_IN_A_ROW minus 1 since the token just inserted is excluded
+            if(count_forward + count_backward == (N_IN_A_ROW - 1)){
+                return true;
             }
-
-            //Temporary
-            if(di == -1 && dj == 1){
-                di = 0;
-                dj = 0;
-            }
-            count = 1;
-            cout<<"Reset"<<endl;
         }
     }
 

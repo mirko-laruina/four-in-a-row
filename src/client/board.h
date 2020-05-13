@@ -3,10 +3,18 @@
 #include <iostream>
 #include <cstring>
 
+#define N_IN_A_ROW 4
+
 
 class Board {
     int rows_, cols_, size_;
     char* cells_;
+
+    /* 
+     * Counts the tokens of the player towerds a direction (di, dj)
+     * starting from  (row, col)  
+     */
+    int countNexts(char player, int row, int col, int di, int dj);
 
     public:
     Board(int rows = 6, int columns = 7);
