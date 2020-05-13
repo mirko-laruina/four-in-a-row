@@ -22,7 +22,7 @@ class Board {
     bool play(char player, int column);
     bool checkWin(char player, int starting_row, int starting_col);
 
-    void ugly_print(std::ostream& os);
+    void print(std::ostream& os);
     friend std::ostream& operator<<(std::ostream& os, const Board& b);
 };
 #endif //BOARD_H

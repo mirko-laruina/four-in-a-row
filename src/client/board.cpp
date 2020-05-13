@@ -1,29 +1,8 @@
 #include "board.h"
 using namespace std;
 
-void Board::ugly_print(ostream& os){
-    for(int i = 0; i<(rows_+3)*2-1; ++i){
-        os<<'*';
-    }
-    os<<endl;
-
-    for(int i = 0; i<rows_; ++i){
-        os<<"* ";
-        for(int j = 0; j<cols_; ++j){
-            //cout<<"i: "<<i<<" j: "<<j<<" value: "<<b.cells_[i*b.cols_+j]<<endl;
-            if(cells_[i*cols_+j] == 0){
-                os<<"  ";
-            } else {
-                os<<cells_[i*cols_+j]<<" ";
-            }
-        }
-        os<<'*'<<endl;
-    }
-    
-    for(int i = 0; i<(rows_+3)*2-1; ++i){
-        os<<'*';
-    }
-    os<<endl;
+void Board::print(ostream& os){
+    os<<*this;
 }
 
 Board::Board(int rows /* = 6 */, int columns /* = 7 */){
@@ -59,7 +38,7 @@ int Board::countNexts(char player, int row, int col, int di, int dj){
         if(cells_[i*cols_+j] != player){
             break;
         } else {
-            cout<<i<<" "<<j<<endl;
+            //cout<<i<<" "<<j<<endl;
             count++;
         }
     }
@@ -74,7 +53,7 @@ bool Board::checkWin(char player, int row, int col){
         if more than 4, declare win
     */
 
-    cout<<"Checking ("<<row<<", "<<col<<")"<<endl; 
+    //cout<<"Checking ("<<row<<", "<<col<<")"<<endl; 
 
     for(int di = 1; di >= 0 && di != -1; --di){
         for(int dj = 1; dj >= 0 && di != -1; --dj){
@@ -104,5 +83,27 @@ int Board::getNumCols(){
 }
 
 ostream& operator<<(ostream& os, const Board& b){
+    for(int i = 0; i<(b.rows_+3)*3-2; ++i){
+        os<<'*';
+    }
+    os<<endl;
+
+    for(int i = 0; i<b.rows_; ++i){
+        os<<"*  ";
+        for(int j = 0; j<b.cols_; ++j){
+            //cout<<"i: "<<i<<" j: "<<j<<" value: "<<b.cells_[i*b.cols_+j]<<endl;
+            if(b.cells_[i*b.cols_+j] == 0){
+                os<<"   ";
+            } else {
+                os<<b.cells_[i*b.cols_+j]<<"  ";
+            }
+        }
+        os<<'*'<<endl;
+    }
+    
+    for(int i = 0; i<(b.rows_+3)*3-2; ++i){
+        os<<'*';
+    }
+    os<<endl;
     return os;
 }
