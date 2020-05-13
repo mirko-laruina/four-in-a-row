@@ -78,7 +78,7 @@ bool Board::checkWin(char player, int row, int col){
 
                 if(cells_[i*cols_+j] != player){
                     break;
-                } else if(count<4){
+                } else if(count<3){
                     cout<<"<"<<i<<" "<<j<<endl;
                     count++;
                 } else {
