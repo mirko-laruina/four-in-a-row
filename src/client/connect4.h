@@ -1,12 +1,12 @@
-#ifndef BOARD_H
-#define BOARD_H
+#ifndef CONNECT4_H
+#define CONNECT4_H
 #include <iostream>
 #include <cstring>
 
 #define N_IN_A_ROW 4
 
 
-class Board {
+class Connect4 {
     int rows_, cols_, size_;
     char* cells_;
 
@@ -17,12 +17,12 @@ class Board {
     int countNexts(char player, int row, int col, int di, int dj);
 
     public:
-    Board(int rows = 6, int columns = 7);
+    Connect4(int rows = 6, int columns = 7);
     int getNumCols();
     bool play(char player, int column);
     bool checkWin(char player, int starting_row, int starting_col);
 
     void print(std::ostream& os);
-    friend std::ostream& operator<<(std::ostream& os, const Board& b);
+    friend std::ostream& operator<<(std::ostream& os, const Connect4& b);
 };
-#endif //BOARD_H
+#endif //CONNECT4_H
