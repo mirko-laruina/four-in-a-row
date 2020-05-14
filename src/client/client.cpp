@@ -50,7 +50,6 @@ int main(){
     cout<<c;
 
     do {
-        cout<<"NOTE: the game may never end"<<endl;
         cout<<"Write the column you want to insert the token to"<<endl;
         do {
             cout<<"> ";
@@ -74,7 +73,7 @@ int main(){
             do {
                 adv_col = rand()%c.getNumCols();
                 cout<<"Your enemy has chosen column "<<adv_col<<endl;
-                win = c.play(rand()%c.getNumCols(), c.getAdv());
+                win = c.play(adv_col, c.getAdv());
                 cout<<c;
                 if(win == 1){
                     cout<<"Damn! You lost!"<<endl;
@@ -83,6 +82,7 @@ int main(){
                     continue;
                 } else if(win == -2){
                     cout<<"The entire board is filled: it is a draw!"<<endl;
+                    break;
                 }
             } while (win == -1);
         }

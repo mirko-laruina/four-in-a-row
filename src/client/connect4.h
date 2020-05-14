@@ -19,6 +19,9 @@ class Connect4 {
     /** Rows, cols and total size of the board */
     int rows_, cols_, size_;
 
+    /** State of the board */
+    bool full_;
+
     /** Matrix data structure for the board */
     char* cells_;
 
@@ -42,6 +45,13 @@ class Connect4 {
      */
     int countNexts(char player, int row, int col, int di, int dj);
 
+    /**
+     * @brief Checks if the top row is full, this would mean all the board is full
+     * 
+     * @return true if full
+     * @return false if at least one cell is empty
+     */
+    bool checkFullTopRow();
     public:
 
     /**
@@ -68,7 +78,7 @@ class Connect4 {
      * @retval 1        Success with win
      * @retval 0        Success without win
      * @retval -1       Failure for full column
-     * @retval -2       Failure for full board
+     * @retval -2       Board is full, it could be so before or after the move takes place
      */
     int8_t play(int column, char player = 0);
 

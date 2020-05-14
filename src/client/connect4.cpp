@@ -20,6 +20,7 @@ Connect4::Connect4(int rows /* = 6 */, int columns /* = 7 */){
     rows_ = rows;
     cols_ = columns;
     size_ = rows*columns;
+    full_ = false;
 
     //Maybe check for overflow if we will use different board values
 
@@ -32,6 +33,12 @@ int8_t Connect4::play(int col, char player){
     if(player == 0){
         player = player_;
     }
+
+    //Trying to play with a full board
+    if(full_){
+        return -2;
+    }
+
     for(int i = rows_-1; i>=0; --i){
         if(cells_[i*cols_+col] == 0){
             col_full = false;
@@ -39,24 +46,21 @@ int8_t Connect4::play(int col, char player){
             if( checkWin(i, col, player) ){
                 return 1;
             } else {
-                return 0;
+                //All the board could be full now
+                if(i == 0 && checkFullTopRow()){
+                    full_ = true;
+                    return -2;
+                } else {
+                    return 0;
+                }
             }
         }
     }
 
-    //If the column is full, we should check if the board is full
-    if(col_full){
-        cout<<"Hee"<<endl;
-        for(int j = 0; j<cols_; ++j){
-            cout<<cells_[j]<<endl;
-            if(cells_[j] == 0){
-                return -1;
-            }
-        }
-    }
-
-    //The board is full
-    return -2;
+    //We are sure the board is not full, otherwise we would have already exited
+    //If a play was possible, we would have already exited too
+    //Only possible case is full column
+    return -1;
 }
 
 int Connect4::countNexts(char player, int row, int col, int di, int dj){
@@ -110,6 +114,15 @@ bool Connect4::checkWin(int row, int col, char player){
 
     return false;
 
+}
+
+bool Connect4::checkFullTopRow(){
+    for(int j = 0; j<cols_; ++j){
+        if(cells_[j] == 0){
+            return false;
+        }
+    }
+    return true;
 }
 
 int Connect4::getNumCols(){
