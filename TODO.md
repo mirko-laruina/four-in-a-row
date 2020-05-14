@@ -1,0 +1,1 @@
+Check for full board when we play without winning
