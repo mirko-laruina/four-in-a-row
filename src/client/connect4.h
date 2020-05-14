@@ -21,7 +21,7 @@ class Connect4 {
     public:
     Connect4(int rows = 6, int columns = 7);
     int getNumCols();
-    bool play(int column, char player = 0);
+    int8_t play(int column, char player = 0);
     bool checkWin(int starting_row, int starting_col, char player = 0);
 
     bool setPlayer(char player);

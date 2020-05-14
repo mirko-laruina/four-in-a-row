@@ -16,19 +16,36 @@ Connect4::Connect4(int rows /* = 6 */, int columns /* = 7 */){
     memset(cells_, 0, size_);
 }
 
-bool Connect4::play(int col, char player){
+int8_t Connect4::play(int col, char player){
+    bool col_full = true;
     if(player == 0){
         player = player_;
     }
     for(int i = rows_-1; i>=0; --i){
         if(cells_[i*cols_+col] == 0){
+            col_full = false;
             cells_[i*cols_+col] = player;
-            return checkWin(i, col, player);
+            if( checkWin(i, col, player) ){
+                return 1;
+            } else {
+                return 0;
+            }
         }
     }
 
-    //temporary, this can mean the column is full
-    return false;
+    //If the column is full, we should check if the board is full
+    if(col_full){
+        cout<<"Hee"<<endl;
+        for(int j = 0; j<cols_; ++j){
+            cout<<cells_[j]<<endl;
+            if(cells_[j] == 0){
+                return -1;
+            }
+        }
+    }
+
+    //The board is full
+    return -2;
 }
 
 int Connect4::countNexts(char player, int row, int col, int di, int dj){

@@ -52,19 +52,32 @@ int main(){
         
         win = c.play(choosen_col-1, c.getPlayer());
         cout<<c;
-        if(win){
+        if(win == 1){
             cout<<"Congratulation, you won!"<<endl;
+        } else if(win == -1){
+            cout<<"The column is full, choose a different one!"<<endl;
+            continue;
+        } else if(win == -2){
+            cout<<"The entire board is filled: it is a draw!"<<endl;
+            break;
         }
 
-        if(!win){
-            adv_col = rand()%c.getNumCols();
-            cout<<"Your enemy has chosen column "<<adv_col<<endl;
-            win = c.play(rand()%c.getNumCols(), c.getAdv());
-            cout<<c;
-            if(win){
-                cout<<"Damn! You lost!"<<endl;
-            }
+        if(win != 1){
+            do {
+                adv_col = rand()%c.getNumCols();
+                cout<<"Your enemy has chosen column "<<adv_col<<endl;
+                win = c.play(rand()%c.getNumCols(), c.getAdv());
+                cout<<c;
+                if(win == 1){
+                    cout<<"Damn! You lost!"<<endl;
+                } else if(win == -1){
+                    cout<<"The column is full, the adversary has to chose a different one!"<<endl;
+                    continue;
+                } else if(win == -2){
+                    cout<<"The entire board is filled: it is a draw!"<<endl;
+                }
+            } while (win == -1);
         }
-    } while (!win);
+    } while (win == -1 || win == 0);
     return 0;
 }
