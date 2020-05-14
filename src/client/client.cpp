@@ -1,3 +1,11 @@
+/**
+ * @file client.cpp
+ * @author Mirko Laruina
+ * 
+ * @brief Implementation of a 4-in-a-row game
+ *
+ * @date 2020-05-14
+ */
 #include <iostream>
 #include <cstdlib>
 #include <ctime>

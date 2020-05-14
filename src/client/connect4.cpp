@@ -1,3 +1,14 @@
+/**
+ * @file connect4.cpp
+ * @author Mirko Laruina
+ *
+ * @brief Implementation of connect4.h
+ *
+ * @date 2020-05-14
+ *
+ * @see connect4.h
+ * 
+ */
 #include "connect4.h"
 using namespace std;
 

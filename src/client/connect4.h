@@ -1,3 +1,12 @@
+/**
+ * @file connect4.h
+ * @author Mirko Laruina
+ *
+ * @brief Header file for the class responsible of handling the board of a Connect4 game
+ *
+ * @date 2020-05-14
+ */
+
 #ifndef CONNECT4_H
 #define CONNECT4_H
 #include <iostream>
