@@ -73,7 +73,7 @@ int Connect4::countNexts(char player, int row, int col, int di, int dj){
         if(cells_[i*cols_+j] != player){
             break;
         } else {
-            //cout<<i<<" "<<j<<endl;
+            LOG(LOG_DEBUG, "%d %d", i, j);
             count++;
         }
     }
@@ -88,7 +88,7 @@ bool Connect4::checkWin(int row, int col, char player){
         if more than 4, declare win
     */
 
-    //cout<<"Checking ("<<row<<", "<<col<<")"<<endl; 
+    LOG(LOG_DEBUG, "Checking (%d, %d)", row, col); 
     if(player == 0){
         player = player_;
     }
@@ -157,7 +157,6 @@ ostream& operator<<(ostream& os, const Connect4& c){
     for(int i = 0; i<c.rows_; ++i){
         os<<"*";
         for(int j = 0; j<c.cols_; ++j){
-            //cout<<"i: "<<i<<" j: "<<j<<" value: "<<b.cells_[i*b.cols_+j]<<endl;
             if(c.cells_[i*c.cols_+j] == 0){
                 os<<"   ";
             } else {

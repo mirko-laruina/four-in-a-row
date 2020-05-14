@@ -10,7 +10,11 @@
 #include <cstdlib>
 #include <ctime>
 #include "connect4.h"
+#include "../utils/logging.h"
+
 using namespace std;
+
+const int LOG_LEVEL = LOG_DEBUG;
 
 char players[] = {'X', 'O'};
 
