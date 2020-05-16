@@ -11,7 +11,7 @@
 #define CONNECT4_H
 #include <iostream>
 #include <cstring>
-#include "../utils/logging.h"
+#include "logging.h"
 
 #define N_IN_A_ROW 4
 extern const int LOG_LEVEL;

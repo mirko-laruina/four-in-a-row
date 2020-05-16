@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <ctime>
 #include "connect4.h"
-#include "../utils/logging.h"
+#include "logging.h"
 
 using namespace std;
 
