@@ -15,6 +15,8 @@ FOLDERS    := $(strip $(shell find $(SRCDIR) -type d -printf '%P\n'))
 UTILS      = client/connect4
 TARGETS    = client/client 
 
+SRCS = $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(UTILS))) $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(TARGETS)))
+
 # Documentation output
 DOCPDFNAME = documentation.pdf
 SRCPDFNAME = source_code.pdf
@@ -46,7 +48,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HDRDIR)/*.h
 # This is not very effective but for such small project that's not an issue
 
 # Build documentation pdf
-$(DOCDIR)/$(DOCPDFNAME): $(SRCDIR)/*.cpp $(HDRDIR)/*.h $(DOXYGENCFG)
+$(DOCDIR)/$(DOCPDFNAME): $(SRCS) $(HDRDIR)/*.h $(DOXYGENCFG)
 	doxygen $(DOXYGENCFG)
 	( cd $(DOCTMPDIR)/latex ; make )
 	cp $(DOCTMPDIR)/latex/refman.pdf $(DOCDIR)/$(DOCPDFNAME)
