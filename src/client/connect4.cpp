@@ -29,7 +29,7 @@ Connect4::Connect4(int rows /* = 6 */, int columns /* = 7 */){
 }
 
 int8_t Connect4::play(int col, char player){
-    bool col_full = true;
+    // bool col_full = true;
     if(player == 0){
         player = player_;
     }
@@ -41,7 +41,7 @@ int8_t Connect4::play(int col, char player){
 
     for(int i = rows_-1; i>=0; --i){
         if(cells_[i*cols_+col] == 0){
-            col_full = false;
+            // col_full = false;
             cells_[i*cols_+col] = player;
             if( checkWin(i, col, player) ){
                 return 1;

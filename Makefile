@@ -12,8 +12,8 @@ DOCTMPDIR  = build/doc
 FOLDERS    := $(strip $(shell find $(SRCDIR) -type d -printf '%P\n'))
 
 # List of targets
-UTILS      = client/connect4
-TARGETS    = client/client 
+UTILS      = client/connect4 network/inet_utils network/messages network/socket_wrapper utils/dump_buffer
+TARGETS    = client/client client/single_player
 
 SRCS = $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(UTILS))) $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(TARGETS)))
 
@@ -24,7 +24,7 @@ SRCPDFNAME = source_code.pdf
 # Documentation config file
 DOXYGENCFG = doxygen.cfg
 
-CFLAGS += -I $(HDRDIR)
+override CFLAGS += -I $(HDRDIR)
 
 # Object files for utilities (aka libraries)
 UTILS_OBJ  = $(addsuffix .o, $(addprefix $(OBJDIR)/,$(UTILS)))
@@ -36,19 +36,19 @@ exe: $(addprefix $(BINDIR)/,$(TARGETS))
 .SECONDARY: $(UTILSOBJ)
 
 # Build targets
-$(BINDIR)/%: $(OBJDIR)/%.o $(UTILS_OBJ) $(HDRDIR)/*.h
+$(BINDIR)/%: $(OBJDIR)/%.o $(UTILS_OBJ) $(HDRDIR)/**/*.h $(HDRDIR)/*.h
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 	chmod +x $@
 
 # Build generic .o file from .cpp file
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HDRDIR)/*.h
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HDRDIR)/**/*.h $(HDRDIR)/*.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Note that if I modify any header everything is built again
 # This is not very effective but for such small project that's not an issue
 
 # Build documentation pdf
-$(DOCDIR)/$(DOCPDFNAME): $(SRCS) $(HDRDIR)/*.h $(DOXYGENCFG)
+$(DOCDIR)/$(DOCPDFNAME): $(SRCS) $(HDRDIR)/**/*.h $(HDRDIR)/*.h $(DOXYGENCFG)
 	doxygen $(DOXYGENCFG)
 	( cd $(DOCTMPDIR)/latex ; make )
 	cp $(DOCTMPDIR)/latex/refman.pdf $(DOCDIR)/$(DOCPDFNAME)
