@@ -103,7 +103,7 @@ source: $(DOCDIR)/$(SRCPDFNAME)
 	xdg-open doc/source_code.pdf
 
 test: exe
-	@   i=1; \
+	@   i=0; \
 		pass=0; \
 		for test_script in tests/*.sh; do \
 			sh $$test_script; \
@@ -116,7 +116,7 @@ test: exe
 			fi; \
 			i=$$(($$i+1)); \
 		done; \
-		echo "Passed $$pass out of $$((i-1))"
+		echo "Passed $$pass out of $$i"
 		
 help:
 	@echo "all:         builds everything (both binaries and documentation)"
