@@ -106,13 +106,14 @@ test: exe
 	@   i=0; \
 		pass=0; \
 		for test_script in tests/*.sh; do \
+			echo -n "$$test_script ... "; \
 			sh $$test_script; \
 			if [ "$$?" -eq "0" ]; \
 			then \
-				echo "$$test_script PASS"; \
+				echo "PASS"; \
 				pass=$$(($$pass+1)); \
 			else \
-				echo "$$test_script FAIL"; \
+				echo "FAIL"; \
 			fi; \
 			i=$$(($$i+1)); \
 		done; \
