@@ -102,6 +102,22 @@ doc: $(DOCDIR)/$(DOCPDFNAME) doc_open
 source: $(DOCDIR)/$(SRCPDFNAME) 
 	xdg-open doc/source_code.pdf
 
+test: exe
+	@   i=1; \
+		pass=0; \
+		for test_script in tests/*.sh; do \
+			sh $$test_script; \
+			if [ "$$?" -eq "0" ]; \
+			then \
+				echo "$$test_script PASS"; \
+				pass=$$(($$pass+1)); \
+			else \
+				echo "$$test_script FAIL"; \
+			fi; \
+			i=$$(($$i+1)); \
+		done; \
+		echo "Passed $$pass out of $$((i-1))"
+		
 help:
 	@echo "all:         builds everything (both binaries and documentation)"
 	@echo "clean:       deletes any intermediate or output file in build/, dist/ and doc/"
@@ -111,6 +127,7 @@ help:
 	@echo "help:        shows this message"
 	@echo "rebuild:     same as calling clean and then all"
 	@echo "source:      makes source code pdf and opens it"
+	@echo "test:        runs all tests defined in tests/*.sh"
 
 # these targets aren't name of files
 .PHONY: all exe clean rebuild doc_open doc help source
