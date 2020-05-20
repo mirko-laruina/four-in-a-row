@@ -29,6 +29,9 @@ protected:
 
     /** Socket file descriptor */
     int socket_fd;
+
+    /** Pre-allocated buffer for incoming messages */
+    char buffer[MAX_MSG_SIZE];
 public:
     /** 
      * Initialize on a new socket
@@ -53,7 +56,7 @@ public:
      * @param size the size of the temporary buffer
      * @returns the received message or null if an error occurred
      */
-    Message* receiveAnyMsg(size_t size=MAX_MSG_SIZE);
+    Message* receiveAnyMsg();
 
     /** 
      * Receive a new message of the given type from the socket.
@@ -66,7 +69,7 @@ public:
      * @param size the size of the temporary buffer
      * @returns the received message or null if an error occurred
      */
-    Message* receiveMsg(MessageType type, size_t size=MAX_MSG_SIZE);
+    Message* receiveMsg(MessageType type);
 
     /** 
      * Receive a new message of any of the given types from the socket.
@@ -79,7 +82,7 @@ public:
      * @param n_types the number of types to keep (array length)
      * @returns the received message or null if an error occurred
      */
-    Message* receiveMsg(MessageType type[], int n_types, size_t size=MAX_MSG_SIZE);
+    Message* receiveMsg(MessageType type[], int n_types);
 
     /**
      * Sends the given message to the peer host through the socket.

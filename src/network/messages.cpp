@@ -10,9 +10,8 @@
 #include <cstdlib>
 
 #include "network/messages.h"
-#include "utils/dump_buffer.h"
 
-Message* readMessage(char *buffer, int len){
+Message* readMessage(char *buffer, msglen_t len){
     Message *m;
     int ret;
 
@@ -26,7 +25,6 @@ Message* readMessage(char *buffer, int len){
         default:
             m = NULL;
             LOG(LOG_ERR, "Unrecognized message type %d", buffer[0]);
-            dump_buffer_hex(buffer, len);
             return NULL;
     };
 
@@ -34,7 +32,6 @@ Message* readMessage(char *buffer, int len){
 
     if (ret != 0){
         LOG(LOG_ERR, "Error reading message of type %d: %d", buffer[0], ret);
-        dump_buffer_hex(buffer, len);
         return NULL;
     } else{
         return m;
@@ -42,22 +39,22 @@ Message* readMessage(char *buffer, int len){
 }
 
 
-int StartGameMessage::write(char *buffer){
+msglen_t StartGameMessage::write(char *buffer){
     buffer[0] = (char) START_GAME;
     return 1;
 }
 
-int StartGameMessage::read(char *buffer, int len){
+msglen_t StartGameMessage::read(char *buffer, msglen_t len){
     return 0;
 }
 
-int MoveMessage::write(char *buffer){
+msglen_t MoveMessage::write(char *buffer){
     buffer[0] = (char) MOVE;
     buffer[1] = col;
     return 2;
 }
 
-int MoveMessage::read(char *buffer, int len){
+msglen_t MoveMessage::read(char *buffer, msglen_t len){
     if (len < 2)
         return 1;
 

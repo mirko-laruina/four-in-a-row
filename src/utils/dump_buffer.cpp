@@ -14,7 +14,7 @@
 #include <string.h>
 
 
-void dump_buffer_hex(char* buffer, int len){
+void dump_buffer_hex(char* buffer, int len, int log_level){
   char *str, tmp[4];
   int i;
 
@@ -26,6 +26,6 @@ void dump_buffer_hex(char* buffer, int len){
     strcat(str, tmp);
   }
 
-  LOG(LOG_DEBUG, "%s", str);
+  LOG(log_level, "%s", str);
   free(str);
 }

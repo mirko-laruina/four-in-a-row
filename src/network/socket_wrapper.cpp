@@ -9,6 +9,7 @@
 
 #include "logging.h"
 #include "network/socket_wrapper.h"
+#include "utils/dump_buffer.h"
 #include "inet_utils.h"
 
 SocketWrapper::SocketWrapper() {
@@ -20,30 +21,55 @@ SocketWrapper::SocketWrapper() {
     }
 }
 
-Message* SocketWrapper::receiveAnyMsg(size_t size){
+Message* SocketWrapper::receiveAnyMsg(){
     int len;
-    char* in_buffer;
+    msglen_t msglen;
 
-    in_buffer = (char*) malloc(size);
+    // read msg length
+    len = recv(socket_fd, buffer, sizeof(msglen), MSG_WAITALL);
 
-    len = recv(socket_fd, in_buffer, size, 0);
+    DUMP_BUFFER_HEX_DEBUG(buffer, len);
+    
+    if (len == 0){
+        throw "Connection lost";
+    } else if (len != sizeof(msglen)){
+        LOG(LOG_ERR, "Too few bytes recevied from socket: %d < %lu", 
+            len, sizeof(msglen));
+        return NULL;
+    }
+    
+    // read msg payload
+    msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+    len += recv(socket_fd, buffer+len, msglen-len, MSG_WAITALL);
 
-    Message *m = readMessage(in_buffer, len);
+    DUMP_BUFFER_HEX_DEBUG(buffer, len);
+    
+    if (len == 0){
+        throw "Connection lost";
+    } else if (len != msglen){
+        LOG(LOG_ERR, "Too few bytes recevied from socket: %d < %d", 
+            len, msglen);
+        return NULL;
+    }
 
-    free(in_buffer);
+    Message *m = readMessage(buffer+sizeof(msglen), msglen-sizeof(msglen));
 
     return m;
 }
 
-Message* SocketWrapper::receiveMsg(MessageType type, size_t size /*=MAX_MSG_SIZE*/){
-    return this->receiveMsg(&type, 1, size);
+Message* SocketWrapper::receiveMsg(MessageType type){
+    return this->receiveMsg(&type, 1);
 }
 
-Message* SocketWrapper::receiveMsg(MessageType type[], int n_types, 
-                                size_t size /*=MAX_MSG_SIZE*/){
+Message* SocketWrapper::receiveMsg(MessageType type[], int n_types){
     Message *m = NULL;
     while (m == NULL){
-        m = this->receiveAnyMsg();
+        try{
+            m = this->receiveAnyMsg();
+        } catch(const char* msg){
+            LOG(LOG_ERR, "%s", msg);
+            return NULL;
+        }
         if (m != NULL){
             for (int i = 0; i < n_types; i++){
                 if (m->getType() == type[i]){
@@ -59,16 +85,29 @@ Message* SocketWrapper::receiveMsg(MessageType type[], int n_types,
 
 
 int SocketWrapper::sendMsg(Message *msg){
-    int msglen, len;
-    char *out_buffer;
+    msglen_t msglen, pktlen;
+    int len;
 
     msglen = msg->size();
-    out_buffer = (char*) malloc(msglen);
+    pktlen = msglen + sizeof(msglen);
+    if (pktlen > MAX_MSG_SIZE){
+        LOG(LOG_ERR, "Error sending %s: message is too big (requested: %d, max: %lu)", 
+            msg->getName().c_str(),
+            msglen, 
+            MAX_MSG_SIZE-sizeof(msglen)
+        );
+        return 1;
+    }
 
-    msg->write(out_buffer);
+    *((msglen_t*)buffer) = MSGLEN_HTON(pktlen);
+    msg->write(buffer+sizeof(msglen));
 
-    len = send(socket_fd, out_buffer, msglen, 0);
-    if (len != msglen){
+    LOG(LOG_DEBUG, "Sending %s", msg->getName().c_str());
+
+    DUMP_BUFFER_HEX_DEBUG(buffer, pktlen);
+
+    len = send(socket_fd, buffer, pktlen, 0);
+    if (len != pktlen){
         LOG(LOG_ERR, "Error sending %s: len (%d) != msglen (%d)", 
             msg->getName().c_str(),
             len, 
@@ -79,7 +118,6 @@ int SocketWrapper::sendMsg(Message *msg){
 
     LOG(LOG_DEBUG, "Sent message %s", msg->getName().c_str());
     
-    free(out_buffer);
     return 0;
 }
 

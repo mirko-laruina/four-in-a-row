@@ -22,6 +22,12 @@ using namespace std;
  */
 #define MAX_MSG_SIZE 1024
 
+/** Type of message length (first N bytes of packet) */
+typedef uint16_t msglen_t;
+
+#define MSGLEN_HTON(x) htons((x))
+#define MSGLEN_NTOH(x) ntohs((x))
+
 /**
  * Possible type of messages.
  * 
@@ -40,7 +46,7 @@ public:
      * 
      * @returns number of bytes written
      */
-    virtual int write(char *buffer) = 0;
+    virtual msglen_t write(char *buffer) = 0;
 
     /** 
      * Read message from buffer
@@ -48,12 +54,12 @@ public:
      * @returns 0 in case of success, something else in case of errors.
      *          Refer to the implementation for details
      */
-    virtual int read(char *buffer, int len) = 0;
+    virtual msglen_t read(char *buffer, msglen_t len) = 0;
 
     /** 
      * Get required buffer size
      */
-    virtual size_t size() = 0;
+    virtual msglen_t size() = 0;
 
     /** 
      * Get message name (for debug purposes)
@@ -70,10 +76,10 @@ class StartGameMessage : public Message{
 public:
     StartGameMessage() {}
 
-    int write(char *buffer);
-    int read(char *buffer, int len);
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
 
-    size_t size(){return 1;}
+    msglen_t size(){return 1;}
 
     string getName(){return "StartGame";}
 
@@ -90,10 +96,10 @@ public:
     MoveMessage(){}
     MoveMessage(char col) : col(col) {}
 
-    int write(char *buffer);
-    int read(char *buffer, int len);
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
 
-    size_t size(){return 2;}
+    msglen_t size(){return 2;}
 
     string getName(){return "Move";}
 
@@ -107,6 +113,6 @@ public:
  * 
  * NB: remeber to dispose of the created Message when you are done with it.
  */
-Message* readMessage(char *buffer, int len);
+Message* readMessage(char *buffer, msglen_t len);
 
 #endif // MESSAGES_H
