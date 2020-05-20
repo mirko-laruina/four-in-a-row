@@ -9,6 +9,7 @@
 
 #include "logging.h"
 #include "network/socket_wrapper.h"
+#include "inet_utils.h"
 
 SocketWrapper::SocketWrapper() {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);

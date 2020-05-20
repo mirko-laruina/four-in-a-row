@@ -16,8 +16,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "network/inet_utils.h"
 #include "logging.h"
+
+#include "inet_utils.h"
 
 using namespace std;
 

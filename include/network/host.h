@@ -10,8 +10,9 @@
 #ifndef HOST_H
 #define HOST_H
 
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include "logging.h"
-#include "network/inet_utils.h"
 #include "network/messages.h"
 
 /**
@@ -38,17 +39,13 @@ public:
      * 
      * @param addr the inet address of the remote host
      */
-    Host(char* ip, int port){
-        addr = make_sv_sockaddr_in(ip, port);
-    }
+    Host(char* ip, int port);
 
     /** Returns the inet address of the host */
     struct sockaddr_in getAddress(){return addr;}
 
     /** Returns the inet address of the host */
-    string toString(){      
-        return sockaddr_in_to_string(addr);
-    }
+    string toString();
 
 };
 

@@ -10,8 +10,9 @@
 #ifndef SOCKET_WRAPPER_H
 #define SOCKET_WRAPPER_H
 
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include "logging.h"
-#include "network/inet_utils.h"
 #include "network/messages.h"
 #include "network/host.h"
 

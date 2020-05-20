@@ -12,7 +12,6 @@
 
 #include "logging.h"
 #include <string>
-#include "network/inet_utils.h"
 
 using namespace std;
 
