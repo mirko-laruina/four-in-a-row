@@ -32,7 +32,7 @@
 
 #include "user.h"
 #include "user_list.h"
-#include "message_queue.h"
+#include "utils/message_queue.h"
 
 using namespace std;
 
