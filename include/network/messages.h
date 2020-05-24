@@ -40,6 +40,7 @@ enum MessageType {START_GAME, MOVE, REGISTER, CHALLENGE, GAME_END, USERS_LIST,
  */
 class Message{
 public:
+    virtual ~Message() {};
     /** 
      * Write message to buffer
      * 
@@ -74,6 +75,7 @@ public:
 class StartGameMessage : public Message{
 public:
     StartGameMessage() {}
+    ~StartGameMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -94,6 +96,7 @@ private:
 public:
     MoveMessage(){}
     MoveMessage(char col) : col(col) {}
+    ~MoveMessage(){}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -116,6 +119,7 @@ private:
 public:
     RegisterMessage(){}
     RegisterMessage(string username) : username(username) {}
+    ~RegisterMessage(){}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -139,6 +143,7 @@ private:
 public:
     ChallengeMessage(){}
     ChallengeMessage(string username) : username(username) {}
+    ~ChallengeMessage(){}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -158,6 +163,7 @@ public:
 class GameEndMessage : public Message{
 public:
     GameEndMessage(){}
+    ~GameEndMessage(){}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -178,6 +184,7 @@ private:
 public:
     UsersListMessage() {}
     UsersListMessage(string usernames) : usernames(usernames) {}
+    ~UsersListMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -200,6 +207,7 @@ private:
 public:
     UsersListRequestMessage() {}
     UsersListRequestMessage(unsigned int offset) : offset(offset) {}
+    ~UsersListRequestMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -222,6 +230,7 @@ private:
 public:
     ChallengeForwardMessage() {}
     ChallengeForwardMessage(string username) : username(username) {}
+    ~ChallengeForwardMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -244,6 +253,7 @@ private:
     bool response;
 public:
     ChallengeResponseMessage() {}
+    ~ChallengeResponseMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -268,6 +278,7 @@ private:
 public:
     GameCancelMessage() {}
     GameCancelMessage(string username) : username(username) {}
+    ~GameCancelMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -292,6 +303,7 @@ public:
     GameStartMessage() {} 
     GameStartMessage(string username, struct sockaddr_in addr) 
         : username(username), addr(addr) {}
+    ~GameStartMessage() {} 
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);

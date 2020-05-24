@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <map>
 #include <cstring>
+#include <list>
 
 #include "config.h"
 #include "user.h"
@@ -23,15 +24,16 @@ class UserList{
 private:
     map<string,User*> user_map_by_username;
     map<int,User*> user_map_by_fd;
-    pthread_rwlock_t rwlock;
+    pthread_mutex_t mutex;
 public:
     UserList();
 
     bool add(User *u);
     User* get(string username);
     User* get(int fd);
-    void remove(string username);
-    void remove(int fd);
+    bool exists(string username);
+    bool exists(int fd);
+    void yield(User *u);
     string listAvailableFromTo(int from);
     int size();
 };

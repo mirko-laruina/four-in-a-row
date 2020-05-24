@@ -24,15 +24,15 @@
 
 class MessageQueue{
 private:
-    queue<pair<User*,Message*>> msg_queue;
+    queue<pair<int,Message*>> msg_queue;
     pthread_mutex_t mutex;
     pthread_cond_t available_messages;
 public:
     MessageQueue();
-    bool push(User* u, Message* m);
-    pair<User*,Message*> pull();
-    pair<User*,Message*> pullWait();
-    bool pushSignal(User* u, Message* m);
+    bool push(int u, Message* m);
+    bool pushSignal(int u, Message* m);
+    pair<int,Message*> pull();
+    pair<int,Message*> pullWait();
 };
 
 #endif // MESSAGE_QUEUE_H

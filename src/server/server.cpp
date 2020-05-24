@@ -6,8 +6,6 @@
  * 
  * The select implementation was inspired by
  * https://www.gnu.org/software/libc/manual/html_node/Server-Example.html
- * 
- * TODO: cleanup of disconnected users
  *
  * @date 2020-05-23
  */
@@ -71,12 +69,6 @@ void doubleUnlock(User* u_keep_lock, User* u_unlock){
 
 bool handleRegisterMessage(User* u, RegisterMessage* msg){
     string username = msg->getUsername();
-    User* u_in_list = user_list.get(username);
-    if (u_in_list != NULL){
-        user_list.remove(username);
-    }
-    // remove old record without username
-    user_list.remove(u->getSocketWrapper()->getDescriptor());
     u->setUsername(username);
     u->setState(AVAILABLE);
     // readd with username
@@ -98,6 +90,7 @@ bool handleChallengeMessage(User* u, ChallengeMessage* msg){
     if (u->getState() != AVAILABLE){
         // someother thing concurrently happened, ignore
         doubleUnlock(u, challenged);
+        user_list.yield(challenged);
         return true;
     }
 
@@ -107,6 +100,7 @@ bool handleChallengeMessage(User* u, ChallengeMessage* msg){
         res = u->getSocketWrapper()->sendMsg(&cancel_msg) == 0;
 
         doubleUnlock(u, challenged);
+        user_list.yield(challenged);
         return res;
     }
 
@@ -127,6 +121,7 @@ bool handleChallengeMessage(User* u, ChallengeMessage* msg){
     }
 
     doubleUnlock(u, challenged);
+    user_list.yield(challenged);
 
     return true;
 }
@@ -158,6 +153,7 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
             // someother thing concurrently happened, abort
             // maybe this refers to old challenge
             doubleUnlock(u, opponent);
+            user_list.yield(opponent);
             return true;
         }
 
@@ -168,6 +164,7 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
             GameCancelMessage cancel_msg(opponent->getUsername());
             res = u->getSocketWrapper()->sendMsg(&cancel_msg) == 0;
             doubleUnlock(u, opponent);
+            user_list.yield(opponent);
             return res;
         }
 
@@ -221,6 +218,7 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
     }
 
     doubleUnlock(u, opponent);
+    user_list.yield(opponent);
 
     return res;
 }
@@ -286,12 +284,16 @@ bool handleMessage(User* user, Message* msg){
 
 void* worker(void *args){
     while (1){
-        pair<User*, Message*> p = message_queue.pullWait();
-        if (!handleMessage(p.first, p.second)){
-            // Connection error -> assume disconnected
-            p.first->setState(DISCONNECTED);
+        pair<int, Message*> p = message_queue.pullWait();
+        User* u = user_list.get(p.first);
+        if (u != NULL){
+            if (!handleMessage(u, p.second)){
+                // Connection error -> assume disconnected
+                u->setState(DISCONNECTED);
+            }
+            user_list.yield(u);
         }
-        // delete p.second; TODO
+        delete p.second;
     }
         
 }
@@ -324,6 +326,22 @@ int main(int argc, char** argv){
         /* Block until input arrives on one or more active sockets. */
         read_fd_set = active_fd_set;
         if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0) {
+            if (errno == EBADF){ // clean closed sockets
+                LOG(LOG_DEBUG, "Bad file descriptor");
+                for (int i = 0; i < FD_SETSIZE; ++i){
+                    if (FD_ISSET(i, &active_fd_set)){
+                        if (i != server_sw.getDescriptor() 
+                                && !user_list.exists(i)
+                            ){
+                            // user was disconnected but I still need to clear it
+                            LOG(LOG_DEBUG, "Cleared fd %d", i);
+                            FD_CLR(i, &active_fd_set);
+                        }
+                    }
+                }
+                continue;
+            }
+
             perror("select");
             exit(1);
         }
@@ -344,6 +362,11 @@ int main(int argc, char** argv){
                     user_list.add(u);
                 } else {
                     User *u = user_list.get(i);
+                    if (u->getState() == DISCONNECTED){
+                        LOG(LOG_DEBUG, "Received message from disconnected user with countRefs = %d", u->countRefs());
+                        user_list.yield(u);
+                        continue;
+                    }
                     const char* u_addr_str = u->getSocketWrapper()
                             ->getConnectedHost().toString().c_str();
                     LOG(LOG_DEBUG, "Available message from %s (%s)",
@@ -351,16 +374,25 @@ int main(int argc, char** argv){
                     try{
                         Message* m = u->getSocketWrapper()->readPartMsg();
                         if (m != NULL)
-                            message_queue.pushSignal(u, m);
+                            message_queue.pushSignal(i, m);
                     } catch(const char* msg){
                         LOG(LOG_WARN, "Client %s disconnected: %s", 
                             u_addr_str, msg);
                         u->setState(DISCONNECTED);
-                        FD_CLR(i, &active_fd_set);
-                        u->getSocketWrapper()->closeSocket();
-                        user_list.remove(i);
-                        // TODO delete user
                     }
+                    user_list.yield(u);
+                    if (!user_list.exists(i)){
+                        // user was disconnected -> clear it
+                        FD_CLR(i, &active_fd_set);
+                    }
+                }
+            } else if (FD_ISSET(i, &active_fd_set)){
+                if (i != server_sw.getDescriptor() 
+                                && !user_list.exists(i)
+                ){
+                    LOG(LOG_DEBUG, "Cleared fd %d", i);
+                    // user was disconnected but I still need to clear it
+                    FD_CLR(i, &active_fd_set);
                 }
             }
         }

@@ -14,9 +14,9 @@ MessageQueue::MessageQueue(){
     pthread_mutex_init(&mutex, NULL);
 }
 
-bool MessageQueue::push(User* u, Message* m){
+bool MessageQueue::push(int u, Message* m){
     bool success;
-    pair<User*,Message*> p(u, m);
+    pair<int,Message*> p(u, m);
     pthread_mutex_lock(&mutex);
     if ((success = msg_queue.size() < MAX_QUEUE_LENGTH))
         msg_queue.push(p);
@@ -24,8 +24,8 @@ bool MessageQueue::push(User* u, Message* m){
     return success;
 }
 
-pair<User*,Message*> MessageQueue::pull(){
-    pair<User*,Message*> p;
+pair<int,Message*> MessageQueue::pull(){
+    pair<int,Message*> p;
     pthread_mutex_lock(&mutex);
     p = msg_queue.front();
     msg_queue.pop();
@@ -33,8 +33,8 @@ pair<User*,Message*> MessageQueue::pull(){
     return p;
 }
 
-pair<User*,Message*> MessageQueue::pullWait(){
-    pair<User*,Message*> p;
+pair<int,Message*> MessageQueue::pullWait(){
+    pair<int,Message*> p;
     pthread_mutex_lock(&mutex);
     while(msg_queue.empty())
         pthread_cond_wait(&available_messages, &mutex);
@@ -44,9 +44,9 @@ pair<User*,Message*> MessageQueue::pullWait(){
     return p;
 }
 
-bool MessageQueue::pushSignal(User* u, Message* m){
+bool MessageQueue::pushSignal(int fd, Message* m){
     bool success;
-    pair<User*,Message*> p(u, m);
+    pair<int,Message*> p(fd, m);
     pthread_mutex_lock(&mutex);
     if ((success = msg_queue.size() < MAX_QUEUE_LENGTH)){
         msg_queue.push(p);
