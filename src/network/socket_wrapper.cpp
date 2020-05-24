@@ -7,6 +7,7 @@
  * @see socket_wrapper.h
  */
 
+#include <assert.h>
 #include "logging.h"
 #include "network/socket_wrapper.h"
 #include "utils/dump_buffer.h"
@@ -34,6 +35,7 @@ Message* SocketWrapper::readPartMsg(){
     } else{
         // read msg length
         msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+        assert(msglen <= MAX_MSG_SIZE); // must not happen
 
         // read up to msg length
         len = read(socket_fd, buffer+buf_idx, msglen-buf_idx);
@@ -59,6 +61,10 @@ Message* SocketWrapper::readPartMsg(){
 
     // read msg length
     msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+
+    if (msglen > MAX_MSG_SIZE){
+        throw("Message is too big");
+    } 
 
     if (buf_idx != msglen){
         LOG(LOG_DEBUG, "Too few bytes received from socket: %d < %d", 
@@ -93,12 +99,17 @@ Message* SocketWrapper::receiveAnyMsg(){
     
     // read msg payload
     msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+
+    if (msglen > MAX_MSG_SIZE){
+        throw("Message is too big");
+    } 
+
     len += recv(socket_fd, buffer+len, msglen-len, MSG_WAITALL);
 
     DUMP_BUFFER_HEX_DEBUG(buffer, len);
     
     if (len == 0){
-        throw "Connection lost";
+        throw "Received EOF";
     } else if (len != msglen){
         LOG(LOG_ERR, "Too few bytes recevied from socket: %d < %d", 
             len, msglen);
