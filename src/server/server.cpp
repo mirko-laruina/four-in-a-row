@@ -36,8 +36,10 @@
 
 using namespace std;
 
+typedef pair<int,Message*> msgqueue_t;
+
 static UserList user_list;
-static MessageQueue message_queue;
+static MessageQueue<msgqueue_t> message_queue;
 static pthread_t threads[N_THREADS];
 
 void logUnexpectedMessage(User* u, Message* m){
@@ -284,7 +286,7 @@ bool handleMessage(User* user, Message* msg){
 
 void* worker(void *args){
     while (1){
-        pair<int, Message*> p = message_queue.pullWait();
+        msgqueue_t p = message_queue.pullWait();
         User* u = user_list.get(p.first);
         if (u != NULL){
             if (!handleMessage(u, p.second)){
@@ -374,7 +376,7 @@ int main(int argc, char** argv){
                     try{
                         Message* m = u->getSocketWrapper()->readPartMsg();
                         if (m != NULL)
-                            message_queue.pushSignal(i, m);
+                            message_queue.pushSignal(msgqueue_t(i, m));
                     } catch(const char* msg){
                         LOG(LOG_WARN, "Client %s disconnected: %s", 
                             u_addr_str, msg);
