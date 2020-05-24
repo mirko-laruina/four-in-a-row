@@ -39,6 +39,12 @@ using namespace std;
  */
 #define MAX_SOCKADDR_STR_LEN 22
 
+/**
+ * Size of a serialized sockaddr_in
+ * 32 bit address + 16 bit port = 6 bytes
+ */
+#define SERIALIZED_SOCKADDR_IN_LEN 6
+
 
 /**
  * Binds socket to a random port.
@@ -85,9 +91,23 @@ int sockaddr_in_cmp(struct sockaddr_in sai1, struct sockaddr_in sai2);
  * Converts sockaddr_in structure to string to be printed.
  * 
  * @param src   the input address
- * @param dst   the output string (must be at least MAX_SOCKADDR_STR_LEN long)
  */
 string sockaddr_in_to_string(struct sockaddr_in src);
 
+/**
+ * Serializes sockaddr_in structure to given buffer.
+ * 
+ * @param src   the input address
+ * @param buffer the buffer
+ */
+void sockaddr_in_to_buffer(struct sockaddr_in src, char* buffer);
+
+/**
+ * Deerializes sockaddr_in structure from given buffer.
+ * 
+ * @param buffer the buffer
+ * @return the built sockaddr_in struct
+ */
+struct sockaddr_in buffer_to_sockaddr_in(char* buffer);
 
 #endif

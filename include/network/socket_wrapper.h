@@ -32,6 +32,9 @@ protected:
 
     /** Pre-allocated buffer for incoming messages */
     char buffer[MAX_MSG_SIZE];
+
+    /** Index in the buffer that has been read up to now */
+    msglen_t buf_idx;
 public:
     /** 
      * Initialize on a new socket
@@ -43,17 +46,29 @@ public:
      */
     SocketWrapper(int sd) : socket_fd(sd) {}
 
+    ~SocketWrapper(){closeSocket();}
+
     /** 
      * Returns current socket file descriptor
      */
     int getDescriptor(){return socket_fd;};
+    
+    /** 
+     * Read any new data from the socket but does not wait for the 
+     * whole message to be ready.
+     * 
+     * This API is blocking iff socket was not ready.
+     * 
+     * @param size the size of the temporary buffer
+     * @returns the received message or null if an error occurred
+     */
+    Message* readPartMsg();
 
     /** 
      * Receive any new message from the socket.
      * 
      * This API is blocking.
      * 
-     * @param size the size of the temporary buffer
      * @returns the received message or null if an error occurred
      */
     Message* receiveAnyMsg();
@@ -66,7 +81,6 @@ public:
      * This API is blocking.
      * 
      * @param type the type to keep
-     * @param size the size of the temporary buffer
      * @returns the received message or null if an error occurred
      */
     Message* receiveMsg(MessageType type);
@@ -91,6 +105,11 @@ public:
      * @returns 0 in case of success, something else otherwise
      */
     int sendMsg(Message *msg);
+
+    /**
+     * Closes the socket.
+     */
+    void closeSocket();
 
     /**
      * Sets the address of the other host.

@@ -15,10 +15,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdint.h>
 
 #include "logging.h"
 
-#include "inet_utils.h"
+#include "network/inet_utils.h"
 
 using namespace std;
 
@@ -86,4 +87,26 @@ string sockaddr_in_to_string(struct sockaddr_in src){
     string s = dst;
 
     return s;
+}
+
+void sockaddr_in_to_buffer(struct sockaddr_in src, char* buffer){
+    memcpy(buffer, 
+            &src.sin_addr.s_addr, 
+            sizeof(src.sin_addr.s_addr));
+    memcpy(buffer+sizeof(src.sin_addr.s_addr), 
+            &src.sin_port, 
+            sizeof(src.sin_port));
+}
+
+struct sockaddr_in buffer_to_sockaddr_in(char* buffer){
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    memcpy(&addr.sin_addr.s_addr,
+        buffer, 
+        sizeof(addr.sin_addr.s_addr));
+    memcpy(&addr.sin_port,
+        buffer+sizeof(addr.sin_addr.s_addr), 
+        sizeof(addr.sin_port));
+    return addr;
 }

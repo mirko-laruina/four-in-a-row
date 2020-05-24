@@ -11,16 +11,13 @@
 #define MESSAGES_H
 
 #include "logging.h"
+#include "config.h"
 #include <string>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include "network/inet_utils.h"
 
 using namespace std;
-
-/** 
- * Maximum message size.
- * 
- * TODO: it is random, calculate it
- */
-#define MAX_MSG_SIZE 1024
 
 /** Type of message length (first N bytes of packet) */
 typedef uint16_t msglen_t;
@@ -34,7 +31,9 @@ typedef uint16_t msglen_t;
  * When adding a new message class, add a related type here and set its
  * getType method to return it.
  */
-enum MessageType {START_GAME, MOVE};
+enum MessageType {START_GAME, MOVE, REGISTER, CHALLENGE, GAME_END, USERS_LIST, 
+                  USERS_LIST_REQ, CHALLENGE_FWD, CHALLENGE_RESP, GAME_START,
+                  GAME_CANCEL};
 
 /**
  * Abstract class for Messages.
@@ -106,6 +105,205 @@ public:
     char getColumn(){return col;}
 
     MessageType getType(){return MOVE;}
+};
+
+/**
+ * Message that permits the client to register to server
+ */
+class RegisterMessage : public Message{
+private:
+    string username;
+public:
+    RegisterMessage(){}
+    RegisterMessage(string username) : username(username) {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return username.size()+1;}
+
+    string getName(){return "Register";}
+
+    string getUsername(){return username;}
+
+    MessageType getType(){return REGISTER;}
+};
+
+/**
+ * Message that permits the client to challenge another client 
+ * through the server.
+ */
+class ChallengeMessage : public Message{
+private:
+    string username;
+public:
+    ChallengeMessage(){}
+    ChallengeMessage(string username) : username(username) {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return 2;}
+
+    string getName(){return "Challenge";}
+
+    string getUsername(){return username;}
+
+    MessageType getType(){return CHALLENGE;}
+};
+
+/**
+ * Message that signals the server that the client is available
+ */
+class GameEndMessage : public Message{
+public:
+    GameEndMessage(){}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return 1;}
+
+    string getName(){return "Game End";}
+
+    MessageType getType(){return GAME_END;}
+};
+
+/**
+ * Message that the server sends the client with the list of users
+ */
+class UsersListMessage : public Message{
+private:   
+    string usernames;
+public:
+    UsersListMessage() {}
+    UsersListMessage(string usernames) : usernames(usernames) {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return usernames.size()+1;}
+
+    string getName(){return "User list";}
+
+    string getUsernames(){return usernames;}
+
+    MessageType getType(){return USERS_LIST;}
+};
+
+/**
+ * Message with which the client asks for the list of connected users.
+ */
+class UsersListRequestMessage : public Message{
+private:   
+    uint32_t offset;
+public:
+    UsersListRequestMessage() {}
+    UsersListRequestMessage(unsigned int offset) : offset(offset) {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return sizeof(offset)+1;}
+
+    string getName(){return "Users list request";}
+
+    uint32_t getOffset(){return offset;}
+
+    MessageType getType(){return USERS_LIST_REQ;}
+};
+
+/**
+ * Message with which the server forwards a challenge.
+ */
+class ChallengeForwardMessage : public Message{
+private:   
+    string username;
+public:
+    ChallengeForwardMessage() {}
+    ChallengeForwardMessage(string username) : username(username) {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return username.size()+1;}
+
+    string getName(){return "Challenge forward";}
+
+    string getUsername(){return username;}
+
+    MessageType getType(){return CHALLENGE_FWD;}
+};
+
+/**
+ * Message with which the client replies to a challenge.
+ */
+class ChallengeResponseMessage : public Message{
+private:   
+    string username;
+    bool response;
+public:
+    ChallengeResponseMessage() {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return username.size()+2;}
+
+    string getName(){return "Challenge response";}
+
+    string getUsername(){return username;}
+    bool getResponse(){return response;}
+
+    MessageType getType(){return CHALLENGE_RESP;}
+};
+
+/**
+ * Message with which the server forwards a challenge rejectal or another 
+ * event that caused the game to be canceled.
+ */
+class GameCancelMessage : public Message{
+private:   
+    string username;
+public:
+    GameCancelMessage() {}
+    GameCancelMessage(string username) : username(username) {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return username.size()+1;}
+
+    string getName(){return "Game cancel";}
+
+    string getUsername(){return username;}
+
+    MessageType getType(){return GAME_CANCEL;}
+};
+
+/**
+ * Message with which the server makes a new game start between clients.
+ */
+class GameStartMessage : public Message{
+private:   
+    string username;
+    struct sockaddr_in addr;
+public:
+    GameStartMessage() {} 
+    GameStartMessage(string username, struct sockaddr_in addr) 
+        : username(username), addr(addr) {}
+
+    msglen_t write(char *buffer);
+    msglen_t read(char *buffer, msglen_t len);
+
+    msglen_t size(){return username.size()+SERIALIZED_SOCKADDR_IN_LEN+1;}
+
+    string getName(){return "Game start";}
+
+    string getUsername(){return username;}
+    struct sockaddr_in getAddr(){return addr;}
+
+    MessageType getType(){return GAME_START;}
 };
 
 /**

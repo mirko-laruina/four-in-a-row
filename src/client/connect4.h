@@ -11,9 +11,9 @@
 #define CONNECT4_H
 #include <iostream>
 #include <cstring>
+#include "config.h"
 #include "logging.h"
 
-#define N_IN_A_ROW 4
 
 class Connect4 {
     /** Rows, cols and total size of the board */

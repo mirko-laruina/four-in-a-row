@@ -10,7 +10,7 @@
 #include "logging.h"
 #include "network/socket_wrapper.h"
 #include "utils/dump_buffer.h"
-#include "inet_utils.h"
+#include "network/inet_utils.h"
 
 SocketWrapper::SocketWrapper() {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -19,6 +19,59 @@ SocketWrapper::SocketWrapper() {
         perror("Error: ");
         return;    
     }
+    buf_idx = 0;
+}
+Message* SocketWrapper::readPartMsg(){
+    int len;
+    msglen_t msglen;
+
+    if (buf_idx < sizeof(msglen)){ // I first need to read msglen
+        // read available message
+        len = read(socket_fd, buffer+buf_idx, sizeof(msglen)-buf_idx);
+        // I will read rest of it in another moment since I do not know
+        // whether other data is available.
+        // TODO: find a way to tell whether socket has other data
+    } else{
+        // read msg length
+        msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+
+        // read up to msg length
+        len = read(socket_fd, buffer+buf_idx, msglen-buf_idx);
+    }
+
+    DUMP_BUFFER_HEX_DEBUG(buffer, len);
+    
+    if (len < 0){
+        perror("Error:");
+        throw "Error";
+    } else if (len == 0){
+        throw "Connection lost";
+    } 
+
+    // buf_idx is also the number of read bytes up to now    
+    buf_idx += len;
+
+    if (buf_idx < sizeof(msglen)){
+        LOG(LOG_DEBUG, "Too few bytes recevied from socket: %d < %lu", 
+            buf_idx, sizeof(msglen));
+        return NULL;
+    }
+
+    // read msg length
+    msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+
+    if (buf_idx != msglen){
+        LOG(LOG_DEBUG, "Too few bytes received from socket: %d < %d", 
+            buf_idx, msglen);
+        return NULL;
+    }
+
+    Message *m = readMessage(buffer+sizeof(msglen), msglen-sizeof(msglen));
+
+    // reset buffer
+    buf_idx = 0;
+
+    return m;
 }
 
 Message* SocketWrapper::receiveAnyMsg(){
@@ -119,6 +172,10 @@ int SocketWrapper::sendMsg(Message *msg){
     LOG(LOG_DEBUG, "Sent message %s", msg->getName().c_str());
     
     return 0;
+}
+
+void SocketWrapper::closeSocket(){
+    close(socket_fd);
 }
 
 int ClientSocketWrapper::connectServer(Host host){
