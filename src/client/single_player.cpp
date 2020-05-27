@@ -1,46 +1,25 @@
 /**
- * @file single_player.cpp
+ * @file single_player.h
  * @author Mirko Laruina
- * 
- * @brief Implementation of a 4-in-a-row game
+ * @author Riccardo Mancini
  *
- * @date 2020-05-17
+ * @brief Implementation of the single player game main function
+ *
+ * @date 2020-05-27
  */
+
+#include "single_player.h"
 #include <iostream>
-#include <cstdlib>
-#include <ctime>
 #include "connect4.h"
-#include "logging.h"
 
 using namespace std;
 
-char players[] = {'X', 'O'};
-
-void printWelcome(){
-    cout<<"****************************************************************\n"
-        <<"*        __ __     _                                           *\n"
-        <<"*       / // /    (_)___     ____ _   _________ _      __      *\n"
-        <<"*      / // /_   / / __ \\   / __ `/  / ___/ __ \\ | /| / /      *\n"
-        <<"*     /__  __/  / / / / /  / /_/ /  / /  / /_/ / |/ |/ /       *\n"
-        <<"*       /_/    /_/_/ /_/   \\__,_/  /_/   \\____/|__/|__/        *\n"
-        <<"*                                                              *\n"
-        <<"****************************************************************"
-        <<endl;
-}
-
-int main(){
-    // handle server selection on params here
+int playSinglePlayer(){
     char in_buffer[256];
-    int choosen_col;
-    int adv_col;
+    int choosen_col, adv_col;
     int win;
-    srand(time(NULL));
-
-    printWelcome();
-    cout<<endl<<"Welcome to 4-in-a-row!"<<endl;
-    cout<<"The rules of the game are simple: you win when you have 4 connected tokens along any direction."<<endl;
-
     Connect4 c;
+
     cout<<"Who do you want to be? X or O ?"<<endl;
 
     do {
@@ -48,8 +27,11 @@ int main(){
         cin.getline(in_buffer, sizeof(in_buffer));
     } while (!c.setPlayer(in_buffer[0]));
     cout<<"You are playing as "<<c.getPlayer()<<endl;
+
     cout<<"This is the starting board:"<<endl;
     cout<<c;
+
+    srand(time(NULL));
 
     do {
         cout<<"Write the column you want to insert the token to"<<endl;

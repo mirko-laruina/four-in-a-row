@@ -14,6 +14,7 @@
 #include "network/socket_wrapper.h"
 #include "network/host.h"
 #include "utils/args.h"
+#include "single_player.h"
 
 using namespace std;
 
@@ -43,7 +44,7 @@ void printWelcome(){
         <<endl;
 }
 
-enum UserConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER};
+enum UserConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER, SINGLE_PLAYER};
 struct UserConnectionChoice {
     enum UserConnectionType connection_type;
     union{
@@ -64,6 +65,7 @@ struct UserConnectionChoice promptChooseConnection(){
     cout<<"To connect to a server type: `server host port`"<< endl;
     cout<<"To connect to a peer type: `peer host port`"<< endl;
     cout<<"To wait for a peer type: `peer listen_port`"<< endl;
+    cout<<"To play offline type: `offline`"<< endl;
 
     do {
         cout<<"> ";
@@ -77,7 +79,12 @@ struct UserConnectionChoice promptChooseConnection(){
         } else if (args.argc == 3 && strcmp(args.argv[0], "server") == 0){
             return UserConnectionChoice(CONNECT_TO_SERVER, args.argv[1], 
                                         atoi(args.argv[2]));
-        } else{
+        } else if (args.argc == 1 && strcmp(args.argv[0], "offline") == 0){
+            return UserConnectionChoice(SINGLE_PLAYER, 0);
+        } else if (args.argc == 0){
+            cout << "Bye" << endl;
+            exit(0);
+        }else{
             cout << "Could not parse arguments: "<< args << endl;
         }
     } while (true);    
@@ -208,10 +215,7 @@ SocketWrapper* connectToPeer(Host peer){
 }
 
 int main(int argc, char** argv){
-    int turn;
-
     SocketWrapper *sw;
-    srand(time(NULL));
 
     printWelcome();
     cout<<endl<<"Welcome to 4-in-a-row!"<<endl;
@@ -219,20 +223,24 @@ int main(int argc, char** argv){
 
     struct UserConnectionChoice ucc = promptChooseConnection();
 
+    int ret;
     switch(ucc.connection_type){
         case WAIT_FOR_PEER:
             sw = waitForPeer(ucc.listen_port);
-            turn = MY_TURN;
+            ret = playWithPlayer(MY_TURN, sw);
             break;
         case CONNECT_TO_PEER:
             sw = connectToPeer(ucc.host);
-            turn = THEIR_TURN;
+            ret = playWithPlayer(THEIR_TURN, sw);
             break;
         case CONNECT_TO_SERVER:
             cout<<"Unimplemented"<<endl;
-            exit(1);
+            ret = 1;
+            break;
+        case SINGLE_PLAYER:
+            ret = playSinglePlayer();
             break;
     }
 
-    return playWithPlayer(turn, sw);
+    return ret;
 }
