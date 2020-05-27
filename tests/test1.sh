@@ -1,4 +1,5 @@
 #!/bin/bash
+# This test direct peer communication
 
 dir=$(dirname $0)
 
