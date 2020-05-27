@@ -43,7 +43,7 @@ User* UserList::get(string username){
     if (user_map_by_username.find(username) != user_map_by_username.end()){
         u = user_map_by_username.at(username);
         u->increaseRefs();
-        LOG(LOG_DEBUG, "Thread %d got reference to user %d",
+        LOG(LOG_DEBUG, "Thread %ld got reference to user %d",
             pthread_self(), u->getSocketWrapper()->getDescriptor()
         );
     }
@@ -57,7 +57,7 @@ User* UserList::get(int fd){
     if (user_map_by_fd.find(fd) != user_map_by_fd.end()){
         u = user_map_by_fd.at(fd);
         u->increaseRefs();
-        LOG(LOG_DEBUG, "Thread %d got reference to user %d",
+        LOG(LOG_DEBUG, "Thread %ld got reference to user %d",
           pthread_self(), u->getSocketWrapper()->getDescriptor()
         );
     }
@@ -83,7 +83,7 @@ bool UserList::exists(int fd){
 
 void UserList::yield(User* u){
     pthread_mutex_lock(&mutex);
-    LOG(LOG_DEBUG, "Thread %d yielded user %d",
+    LOG(LOG_DEBUG, "Thread %ld yielded user %d",
         pthread_self(), u->getSocketWrapper()->getDescriptor()
     );
     u->decreaseRefs();
