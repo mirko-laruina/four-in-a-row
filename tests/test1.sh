@@ -2,9 +2,9 @@
 
 dir=$(dirname $0)
 
-$dir/../dist/client/client 12345 < $dir/movesS.txt > /tmp/clientS.out &
+$dir/../dist/client/client < $dir/movesS.txt > /tmp/clientS.out &
 sleep 1
-$dir/../dist/client/client 127.0.0.1 12345 < $dir/movesC.txt  > /tmp/clientC.out &
+$dir/../dist/client/client < $dir/movesC.txt  > /tmp/clientC.out &
 wait
 
 outputS=$(grep -i "you won" /tmp/clientS.out | wc -l)
