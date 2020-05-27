@@ -12,7 +12,7 @@ DOCTMPDIR  = build/doc
 FOLDERS    := $(strip $(shell find $(SRCDIR) -type d -printf '%P\n'))
 
 # List of targets
-UTILS      = client/connect4 network/inet_utils network/messages network/socket_wrapper utils/dump_buffer network/host server/user_list
+UTILS      = client/connect4 network/inet_utils network/messages network/socket_wrapper utils/dump_buffer network/host server/user_list utils/args
 TARGETS    = client/client client/single_player server/server
 
 SRCS = $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(UTILS))) $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(TARGETS)))
