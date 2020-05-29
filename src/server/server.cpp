@@ -175,6 +175,7 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
         GameStartMessage msg_to_u(opponent->getUsername(), opp_addr);
         struct sockaddr_in u_addr = u->getSocketWrapper()      
                                         ->getConnectedHost().getAddress();
+        u_addr.sin_port = htons(msg->getListenPort());
         GameStartMessage msg_to_opp(u->getUsername(), u_addr);
         int res_u = u->getSocketWrapper()->sendMsg(&msg_to_u);
         int res_opp = opponent->getSocketWrapper()->sendMsg(&msg_to_opp);
@@ -227,8 +228,8 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
 
 bool handleMessage(User* user, Message* msg){
     bool res = true;
-    LOG(LOG_INFO, "User %s (state %d) received a message of type %d",
-        user->getUsername().c_str(), (int) user->getState(), (int) msg->getType());
+    LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
+        user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
 
     user->lock();
 
@@ -252,6 +253,7 @@ bool handleMessage(User* user, Message* msg){
                 case USERS_LIST_REQ:
                     res = handleUsersListRequestMessage(user,
                         dynamic_cast<UsersListRequestMessage*>(msg));
+                    break;
                 default:
                     logUnexpectedMessage(user, msg);
             }
@@ -261,6 +263,7 @@ bool handleMessage(User* user, Message* msg){
                 case CHALLENGE_RESP:
                     res = handleChallengeResponseMessage(user,
                         dynamic_cast<ChallengeResponseMessage*>(msg));
+                    break;
                 default:
                     logUnexpectedMessage(user, msg);
             }

@@ -9,9 +9,13 @@
 
 #include <sstream>
 #include <string>
+#include <vector>
+#include <iterator>
 #include <iostream>
 #include "user_list.h"
 #include "config.h"
+
+using namespace std;
 
 typedef map<string,User*>::iterator Iterator;
 
@@ -83,10 +87,10 @@ bool UserList::exists(int fd){
 
 void UserList::yield(User* u){
     pthread_mutex_lock(&mutex);
-    LOG(LOG_DEBUG, "Thread %ld yielded user %d",
-        pthread_self(), u->getSocketWrapper()->getDescriptor()
-    );
     u->decreaseRefs();
+    LOG(LOG_DEBUG, "Thread %ld yielded user %d (refcount: %d)",
+        pthread_self(), u->getSocketWrapper()->getDescriptor(), u->countRefs()
+    );
     if (u->countRefs() == 0 && u->getState() == DISCONNECTED){
         if (user_map_by_username.find(u->getUsername()) 
                 != user_map_by_username.end()
@@ -116,7 +120,7 @@ string UserList::listAvailableFromTo(int from){
             if (n < from)
                 continue;
 
-            os << it->first;
+            os << it->first.substr(0, it->first.size()-1);
             if (n < from+MAX_USERS_IN_MESSAGE-1)
                 os << ",";
             
@@ -125,6 +129,7 @@ string UserList::listAvailableFromTo(int from){
         
     }
     pthread_mutex_unlock(&mutex);
+    os << '\0';
 
     return os.str();
 }

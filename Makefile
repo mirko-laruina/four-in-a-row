@@ -1,6 +1,6 @@
 # Compiler and flags
 CC         = g++
-CFLAGS     = -Wall
+CFLAGS     = -g -Wall
 
 # Directories
 OBJDIR     = build
@@ -12,7 +12,7 @@ DOCTMPDIR  = build/doc
 FOLDERS    := $(strip $(shell find $(SRCDIR) -type d -printf '%P\n'))
 
 # List of targets
-UTILS      = client/connect4 network/inet_utils network/messages network/socket_wrapper utils/dump_buffer network/host server/user_list utils/args client/single_player client/multi_player
+UTILS      = client/connect4 network/inet_utils network/messages network/socket_wrapper utils/dump_buffer network/host server/user_list utils/args client/single_player client/multi_player client/server client/server_lobby
 TARGETS    = client/client server/server
 
 SRCS = $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(UTILS))) $(addsuffix .cpp, $(addprefix $(SRCDIR)/,$(TARGETS)))

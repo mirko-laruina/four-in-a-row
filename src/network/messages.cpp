@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 
 #include "network/messages.h"
 #include "network/inet_utils.h"
@@ -93,8 +94,10 @@ msglen_t MoveMessage::read(char *buffer, msglen_t len){
 
 msglen_t RegisterMessage::write(char *buffer){
     buffer[0] = (char) REGISTER;
-    strncpy(&buffer[1], username.c_str(), MAX_USERNAME_LENGTH);
-    return 1+username.size();
+    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
+    strncpy(&buffer[1], username.c_str(), strsize);
+    buffer[1+strsize] = '\0';
+    return 2+strsize;
 }
 
 msglen_t RegisterMessage::read(char *buffer, msglen_t len){
@@ -106,8 +109,10 @@ msglen_t RegisterMessage::read(char *buffer, msglen_t len){
 
 msglen_t ChallengeMessage::write(char *buffer){
     buffer[0] = (char) CHALLENGE;
-    strncpy(&buffer[1], username.c_str(), MAX_USERNAME_LENGTH);
-    return 1+username.size();    
+    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
+    strncpy(&buffer[1], username.c_str(), strsize);
+    buffer[1+strsize] = '\0';
+    return 2+strsize;    
 }
 msglen_t ChallengeMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
@@ -126,8 +131,10 @@ msglen_t GameEndMessage::read(char *buffer, msglen_t len){
 
 msglen_t UsersListMessage::write(char *buffer){
     buffer[0] = (char) USERS_LIST;
-    strncpy(&buffer[1], usernames.c_str(), MAX_USERNAME_LENGTH*MAX_USERS);
-    return 1+usernames.size();  
+    size_t strsize = min((int)usernames.size(),MAX_USERNAME_LENGTH*MAX_USERS);
+    strncpy(&buffer[1], usernames.c_str(), strsize);
+    buffer[1+strsize] = '\0';
+    return 2+strsize;  
 }
 msglen_t UsersListMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
@@ -150,8 +157,10 @@ msglen_t UsersListRequestMessage::read(char *buffer, msglen_t len){
 
 msglen_t ChallengeForwardMessage::write(char *buffer){
     buffer[0] = (char) CHALLENGE_FWD;
-    strncpy(&buffer[1], username.c_str(), MAX_USERNAME_LENGTH);
-    return 1+username.size();    
+    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
+    strncpy(&buffer[1], username.c_str(), strsize);
+    buffer[1+strsize] = '\0';
+    return 2+strsize;    
 }
 msglen_t ChallengeForwardMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
@@ -163,21 +172,30 @@ msglen_t ChallengeForwardMessage::read(char *buffer, msglen_t len){
 msglen_t ChallengeResponseMessage::write(char *buffer){
     buffer[0] = (char) CHALLENGE_RESP;
     buffer[1] = (char) response;
-    strncpy(&buffer[2], username.c_str(), MAX_USERNAME_LENGTH);
-    return 2+username.size();   
+    uint16_t nport = htons(listen_port);
+    memcpy(&buffer[2], &nport, sizeof(nport));
+    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
+    strncpy(&buffer[4], username.c_str(), strsize);
+    buffer[4+strsize] = '\0';
+    return 5+strsize;   
 }
 msglen_t ChallengeResponseMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + 1 + MIN_USERNAME_LENGTH+1)
+    if (len < 1 + 1 + 2 + MIN_USERNAME_LENGTH+1)
         return 1;
     response = (bool) buffer[1];
-    username = string(&buffer[2], min(MAX_USERNAME_LENGTH, len-2));
+    uint16_t nlisten_port;
+    memcpy(&nlisten_port, &buffer[2], sizeof(nlisten_port));
+    listen_port = ntohs(nlisten_port);
+    username = string(&buffer[4], min(MAX_USERNAME_LENGTH, len-4));
     return 0;
 }
 
 msglen_t GameCancelMessage::write(char *buffer){
     buffer[0] = (char) GAME_CANCEL;
-    strncpy(&buffer[1], username.c_str(), MAX_USERNAME_LENGTH);
-    return 1+username.size();    
+    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
+    strncpy(&buffer[1], username.c_str(), strsize);
+    buffer[1+strsize] = '\0';
+    return 2+strsize;    
 }
 msglen_t GameCancelMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
@@ -189,10 +207,12 @@ msglen_t GameCancelMessage::read(char *buffer, msglen_t len){
 msglen_t GameStartMessage::write(char *buffer){
     buffer[0] = (char) GAME_START;
     sockaddr_in_to_buffer(addr, &buffer[1]);
+    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
     strncpy(&buffer[1+SERIALIZED_SOCKADDR_IN_LEN],
          username.c_str(), 
-         MAX_USERNAME_LENGTH);
-    return username.size()+sizeof(addr)+1;
+         strsize);
+    buffer[1+SERIALIZED_SOCKADDR_IN_LEN+strsize] = '\0';
+    return strsize+1+SERIALIZED_SOCKADDR_IN_LEN+1;
 }
 msglen_t GameStartMessage::read(char *buffer, msglen_t len){
     if (len < 1 + SERIALIZED_SOCKADDR_IN_LEN + MIN_USERNAME_LENGTH+1)

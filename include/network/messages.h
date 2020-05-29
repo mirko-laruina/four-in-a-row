@@ -10,12 +10,15 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
 
-#include "logging.h"
-#include "config.h"
 #include <string>
+#include <stdint.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+#include "logging.h"
+#include "config.h"
 #include "network/inet_utils.h"
+#include "network/host.h"
 
 using namespace std;
 
@@ -124,7 +127,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size(){return username.size()+1;}
+    msglen_t size(){return min((int)username.size(),MAX_USERNAME_LENGTH)+1+1;}
 
     string getName(){return "Register";}
 
@@ -148,7 +151,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size(){return 2;}
+    msglen_t size(){return min((int)username.size(),MAX_USERNAME_LENGTH)+1 + 1;}
 
     string getName(){return "Challenge";}
 
@@ -189,7 +192,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size(){return usernames.size()+1;}
+    msglen_t size(){return min((int)usernames.size(),MAX_USERNAME_LENGTH)+1 + 1;}
 
     string getName(){return "User list";}
 
@@ -205,7 +208,7 @@ class UsersListRequestMessage : public Message{
 private:   
     uint32_t offset;
 public:
-    UsersListRequestMessage() {}
+    UsersListRequestMessage() : offset(0) {}
     UsersListRequestMessage(unsigned int offset) : offset(offset) {}
     ~UsersListRequestMessage() {}
 
@@ -235,7 +238,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size(){return username.size()+1;}
+    msglen_t size(){return min((int)username.size(),MAX_USERNAME_LENGTH)+1 + 1;}
 
     string getName(){return "Challenge forward";}
 
@@ -251,19 +254,23 @@ class ChallengeResponseMessage : public Message{
 private:   
     string username;
     bool response;
+    uint16_t listen_port;
 public:
     ChallengeResponseMessage() {}
+    ChallengeResponseMessage(string username, bool response, uint16_t port)
+        : username(username), response(response), listen_port(port) {}
     ~ChallengeResponseMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size(){return username.size()+2;}
+    msglen_t size(){return min((int)username.size(),MAX_USERNAME_LENGTH)+1 + sizeof(response) + sizeof(listen_port) + 1;}
 
     string getName(){return "Challenge response";}
 
     string getUsername(){return username;}
     bool getResponse(){return response;}
+    uint16_t getListenPort(){return listen_port;}
 
     MessageType getType(){return CHALLENGE_RESP;}
 };
@@ -283,7 +290,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size(){return username.size()+1;}
+    msglen_t size(){return min((int)username.size(),MAX_USERNAME_LENGTH)+1 + 1;}
 
     string getName(){return "Game cancel";}
 
@@ -308,12 +315,13 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size(){return username.size()+SERIALIZED_SOCKADDR_IN_LEN+1;}
+    msglen_t size(){return min((int)username.size(),MAX_USERNAME_LENGTH)+1 + SERIALIZED_SOCKADDR_IN_LEN + 1;}
 
     string getName(){return "Game start";}
 
     string getUsername(){return username;}
     struct sockaddr_in getAddr(){return addr;}
+    Host getHost(){return Host(addr);}
 
     MessageType getType(){return GAME_START;}
 };

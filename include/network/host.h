@@ -12,8 +12,10 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <string>
 #include "logging.h"
-#include "network/messages.h"
+
+using namespace std;
 
 /**
  * Class that holds a host information
@@ -26,6 +28,11 @@ private:
     struct sockaddr_in addr;
 
 public:
+    /** 
+     * Constructs new empty instance
+     */
+    Host() {}
+   
     /** 
      * Constructs new instance from given inet address
      * 
