@@ -108,7 +108,7 @@ test: exe
 		pass=0; \
 		for test_script in tests/*.sh; do \
 			echo -n "$$test_script ... "; \
-			sh $$test_script; \
+			sh $$test_script > /dev/null 2> /dev/null; \
 			if [ "$$?" -eq "0" ]; \
 			then \
 				echo "PASS"; \

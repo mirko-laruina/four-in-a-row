@@ -1,17 +1,22 @@
 #!/bin/bash
 # This test direct peer communication
 
+function cleanup {
+    killall client
+    rm "/tmp/clientS.out"
+    rm "/tmp/clientC.out"
+}
+trap cleanup EXIT
+
 dir=$(dirname $0)
 
-$dir/../dist/client/client < $dir/movesS.txt > /tmp/clientS.out &
+"$dir/../dist/client/client" < "$dir/test1/movesS.txt" > "/tmp/clientS.out" &
 sleep 1
-$dir/../dist/client/client < $dir/movesC.txt  > /tmp/clientC.out &
+"$dir/../dist/client/client" < "$dir/test1/movesC.txt"  > "/tmp/clientC.out" &
 wait
 
-outputS=$(grep -i "you won" /tmp/clientS.out | wc -l)
-outputC=$(grep -i "you lost" /tmp/clientC.out | wc -l)
-
-rm /tmp/clientS.out /tmp/clientC.out
+outputS=$(grep -i "you won"  "/tmp/clientS.out" | wc -l)
+outputC=$(grep -i "you lost" "/tmp/clientC.out" | wc -l)
 
 if [ "$outputS" -eq "1" ] && [ "$outputC" -eq "1" ]
 then  
