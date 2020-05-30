@@ -37,12 +37,12 @@ exe: $(addprefix $(BINDIR)/,$(TARGETS))
 .SECONDARY: $(UTILSOBJ)
 
 # Build targets
-$(BINDIR)/%: $(OBJDIR)/%.o $(UTILS_OBJ) $(HDRDIR)/**/*.h $(HDRDIR)/*.h
+$(BINDIR)/%: $(OBJDIR)/%.o $(UTILS_OBJ) $(HDRDIR)/**/*.h $(HDRDIR)/*.h $(SRCDIR)/**/*.h
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) $(LDFLAGS)
 	chmod +x $@
 
 # Build generic .o file from .cpp file
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HDRDIR)/**/*.h $(HDRDIR)/*.h
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HDRDIR)/**/*.h $(HDRDIR)/*.h $(SRCDIR)/**/*.h
 	$(CC) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 
 # Note that if I modify any header everything is built again
@@ -64,7 +64,7 @@ ALL_SOURCES += logging.h
 ALL_SOURCES += $(addprefix $(SRCDIR)/,$(addsuffix .cpp,$(TARGETS)))
 
 # Build source code ps file
-$(OBJDIR)/sources.ps : $(SRCDIR)/*.cpp $(HDRDIR)/*.h
+$(OBJDIR)/sources.ps : $(SRCDIR)/**/*.cpp $(SRCDIR)/**/*.h $(HDRDIR)/*.h
 	echo $(ALL_SOURCES)
 	enscript -C -fCourier9 --highlight=c -p$(OBJDIR)/sources.ps  $(ALL_SOURCES)
 
