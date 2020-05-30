@@ -95,8 +95,18 @@ ConnectionMode serverLobby(Host host){
 
     cout<<"What is your username?"<<endl;
 
-    cout<<"> ";
-    cin.getline(in_buffer, sizeof(in_buffer));
+    do{
+        cout<<"> "<<flush;
+        cin.getline(in_buffer, sizeof(in_buffer));
+        if (strlen(in_buffer) < MIN_USERNAME_LENGTH){
+            cout<<"Username must be at least "<<MIN_USERNAME_LENGTH<<" characters."<<endl;
+        }
+        if (strlen(in_buffer) > MAX_USERNAME_LENGTH){
+            cout<<"Username must be at most "<<MAX_USERNAME_LENGTH<<" characters."<<endl;
+        }
+    } while(strlen(in_buffer) < MIN_USERNAME_LENGTH 
+            || strlen(in_buffer) > MAX_USERNAME_LENGTH);
+
     string username(in_buffer);
 
     cout<<"Registering to "<<host.toString()<<" as "<<username<<endl;
