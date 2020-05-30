@@ -38,6 +38,7 @@ enum UserState {JUST_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
  * Class representing a user.
  * 
  * Always lock() before using an instance and unlock() afterwards.
+ * In order to prevent deadlocks, take locks in alphabetical order of username.
  * 
  * Limitations:
  *  - a user may be challenged by only another user at a time
