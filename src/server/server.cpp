@@ -39,7 +39,7 @@ using namespace std;
 typedef pair<int,Message*> msgqueue_t;
 
 static UserList user_list;
-static MessageQueue<msgqueue_t> message_queue;
+static MessageQueue<msgqueue_t,MAX_QUEUE_LENGTH> message_queue;
 static pthread_t threads[N_THREADS];
 
 void logUnexpectedMessage(User* u, Message* m){
