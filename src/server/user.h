@@ -41,11 +41,11 @@ enum UserState {JUST_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
  */
 class User{
 private:
-    string username;
     SocketWrapper *sw;
-    pthread_mutex_t mutex;
     UserState state;
+    string username;
     string opponent_username;
+    pthread_mutex_t mutex;
 
     /** 
      * Number of references to this user instance
@@ -61,8 +61,9 @@ public:
      * string.
      */
     User(SocketWrapper *sw) 
-            : sw(sw), state(JUST_CONNECTED), opponent_username(""), 
-                username(""), references(0) {
+            : sw(sw), state(JUST_CONNECTED), 
+                username(""), opponent_username(""), 
+                references(0) {
         pthread_mutex_init(&mutex, NULL);
     }
 
