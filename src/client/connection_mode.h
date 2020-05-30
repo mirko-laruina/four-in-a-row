@@ -11,8 +11,24 @@
 
 #include "network/host.h"
 
+/** 
+ * Type of gmae connection requested by the user:
+ * CONNECT_TO_SERVER: the user connects to the given server (Host) that manages 
+ *      users and forwards challenges between users.
+ * CONNECT_TO_PEER: the user directly connects to the given peer (Host) for a
+ *      game.
+ * WAIT_FOR_PEER: the user waits for requests from other peers on the given 
+ *      port and accepts any incoming game.
+ * SINGLE_PLAYER: the player plays against an AI (tbf it's random).
+ * EXIT: (used internally) exit the game with the given return code.
+ */
 enum ConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER, SINGLE_PLAYER, EXIT};
 
+/**
+ * Structure holding information about the connection requested by the user.
+ * 
+ * @see ConnectionType
+ */
 struct ConnectionMode {
     enum ConnectionType connection_type;
     union{

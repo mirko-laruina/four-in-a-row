@@ -15,17 +15,10 @@
  * 
  * The first three will be outputted to stderr, the latter two to stdout.
  * 
- * You can define a LOG_LEVEL for hiding some of the logging messages in a 
- * per-executable basis.
- * In order to do so, you need to put
- * ```
- * const int LOG_LEVEL = LOG_INFO;
- * ```
- * in the file containing the main and 
- * ```
- * extern const int LOG_LEVEL;
- * ```
- * in any other file using this macro.
+ * You can define the LOG_LEVEL macro to one of the available levels for 
+ * hiding some of the logging messages (default: debug).
+ * 
+ * TODO: logging may overlap in a concurrent environment
  * 
  * Adapted from https://stackoverflow.com/a/328660
  */

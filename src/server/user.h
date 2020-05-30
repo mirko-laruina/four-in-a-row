@@ -20,8 +20,25 @@
 #include "network/socket_wrapper.h"
 #include "network/host.h"
 
+/** 
+ * Definition of the available states the user may be in 
+ * 
+ * JUST_CONNECTED: the user has just_connected but not yet registered.
+ * AVAILABLE: the user is registered and available for challenges.
+ * CHALLENGED: the user is being challenged by or has challenged another player.
+ * PLAYING: the user is currently playing with another user.
+ * DISCONNECTED: the user is disconnected.
+ */
 enum UserState {JUST_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
 
+/**
+ * Class representing a user.
+ * 
+ * Always lock() before using an instance and unlock() afterwards.
+ * 
+ * Limitations:
+ *  - a user may be challenged by only another user at a time
+ */
 class User{
 private:
     string username;
@@ -37,30 +54,91 @@ private:
      */
     unsigned int references;
 public:
+    /** 
+     * Contructor 
+     * 
+     * The user is put in the JUST_CONNECTED STATE, username is set to empty
+     * string.
+     */
     User(SocketWrapper *sw) 
             : sw(sw), state(JUST_CONNECTED), opponent_username(""), 
-                references(0) {
+                username(""), references(0) {
         pthread_mutex_init(&mutex, NULL);
     }
 
+    /** 
+     * Destructor 
+     * 
+     * The socket_wrapper is deleted.
+     */
     ~User(){
         pthread_mutex_destroy(&mutex);
         delete sw;
     }
 
+    /**
+     * Locks the user instance unsing the internal mutex.
+     */
     void lock(){pthread_mutex_lock(&mutex);}
+
+    /**
+     * Unlocks the user instance unsing the internal mutex.
+     */
     void unlock(){pthread_mutex_unlock(&mutex);}
 
+    /**
+     * Returns the username
+     */
     string getUsername(){return username;}
+
+    /**
+     * Sets the username
+     */
     void setUsername(string username){this->username=username;}
+
+    /**
+     * Returns the socket wrapper
+     */
     SocketWrapper* getSocketWrapper(){return sw;}
+
+    /**
+     * Returns the current state of the user 
+     */
     UserState getState(){return state;}
+
+    /**
+     * Sets the current state of the user
+     */
     void setState(UserState state){this->state=state;}
+
+    /**
+     * Returns the username of the opponent
+     */
     string getOpponent(){return opponent_username;}
+
+    /**
+     * Sets the username of the opponent
+     */
     void setOpponent(string opponent){this->opponent_username=opponent;}
 
+    /**
+     * Increases the reference count
+     * 
+     * DO NOT CALL THIS. IT IS RESERVED TO UserList.
+     */
     void increaseRefs(){references++;}
+
+    /**
+     * Decreases the reference count
+     * 
+     * DO NOT CALL THIS. IT IS RESERVED TO UserList.
+     */
     void decreaseRefs(){references--;}
+    /**
+     * Returns the reference count
+     * 
+     * DO NOT CALL THIS. IT IS RESERVED TO UserList.
+     */
     int countRefs(){return references;}
 };
 
