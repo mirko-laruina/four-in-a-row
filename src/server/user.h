@@ -20,6 +20,9 @@
 #include "network/socket_wrapper.h"
 #include "network/host.h"
 
+/** Prevent cross references between headers */
+class UserList;
+
 /** 
  * Definition of the available states the user may be in 
  * 
@@ -40,6 +43,7 @@ enum UserState {JUST_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
  *  - a user may be challenged by only another user at a time
  */
 class User{
+    friend UserList;
 private:
     SocketWrapper *sw;
     UserState state;
@@ -53,6 +57,20 @@ private:
      * NB: this is updated ONLY by the UserList with its mutex
      */
     unsigned int references;
+
+    /**
+     * Increases the reference count
+     * 
+     * Used by UserList.
+     */
+    void increaseRefs(){references++;}
+
+    /**
+     * Decreases the reference count
+     * 
+     * Used by UserList.
+     */
+    void decreaseRefs(){references--;}
 public:
     /** 
      * Contructor 
@@ -123,22 +141,7 @@ public:
     void setOpponent(string opponent){this->opponent_username=opponent;}
 
     /**
-     * Increases the reference count
-     * 
-     * DO NOT CALL THIS. IT IS RESERVED TO UserList.
-     */
-    void increaseRefs(){references++;}
-
-    /**
-     * Decreases the reference count
-     * 
-     * DO NOT CALL THIS. IT IS RESERVED TO UserList.
-     */
-    void decreaseRefs(){references--;}
-    /**
      * Returns the reference count
-     * 
-     * DO NOT CALL THIS. IT IS RESERVED TO UserList.
      */
     int countRefs(){return references;}
 };
