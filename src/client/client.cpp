@@ -52,7 +52,7 @@ struct ConnectionMode promptChooseConnection(){
     cout<<"To play offline type: `offline`"<< endl;
 
     do {
-        cout<<"> ";
+        cout<<"> "<<flush;
         cin.getline(in_buffer, sizeof(in_buffer));
         Args args(in_buffer);
         if (args.argc == 2 && strcmp(args.argv[0], "peer") == 0){

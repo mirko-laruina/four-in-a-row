@@ -76,7 +76,7 @@ int handleReceivedChallenge(Server *server,
     cout<<endl<<"You received a challenge from "<<msg->getUsername()<<endl;
     cout<<"Do you want to accept? (y/n)";
     do{
-        cout<<"> ";
+        cout<<"> "<<flush;
         cin.getline(in_buffer, sizeof(in_buffer));
     } while(strlen(in_buffer) != 0 && strcmp(in_buffer, "y") != 0 && strcmp(in_buffer, "n") != 0);
 
@@ -126,7 +126,7 @@ ConnectionMode serverLobby(Host host){
     printAvailableActions();
 
     while (1){
-        cout<<endl<<"> ";
+        cout<<endl<<"> "<<flush;
 
         /* Block until input arrives on one or more active sockets. */
         read_fd_set = active_fd_set;

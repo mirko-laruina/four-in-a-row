@@ -21,7 +21,7 @@ int playWithPlayer(int turn, SocketWrapper *sw){
     cout<<"Who do you want to be? X or O ?"<<endl;
 
     do {
-        cout<<"> ";
+        cout<<"> "<<flush;
         cin.getline(in_buffer, sizeof(in_buffer));
     } while (!c.setPlayer(in_buffer[0]));
     cout<<"You are playing as "<<c.getPlayer()<<endl;
@@ -33,7 +33,7 @@ int playWithPlayer(int turn, SocketWrapper *sw){
         if (turn == MY_TURN){
             cout<<"Write the column you want to insert the token to"<<endl;
             do {
-                cout<<"> ";
+                cout<<"> "<<flush;
                 cin.getline(in_buffer, sizeof(in_buffer));
                 choosen_col = in_buffer[0]-'0';
             } while(choosen_col < 0 || choosen_col > 7);
