@@ -34,9 +34,9 @@ typedef uint16_t msglen_t;
  * When adding a new message class, add a related type here and set its
  * getType method to return it.
  */
-enum MessageType {START_GAME, MOVE, REGISTER, CHALLENGE, GAME_END, USERS_LIST, 
-                  USERS_LIST_REQ, CHALLENGE_FWD, CHALLENGE_RESP, GAME_START,
-                  GAME_CANCEL};
+enum MessageType {START_GAME_PEER, MOVE, REGISTER, CHALLENGE, GAME_END, 
+                  USERS_LIST, USERS_LIST_REQ, CHALLENGE_FWD, CHALLENGE_RESP, 
+                  GAME_START, GAME_CANCEL};
 
 /**
  * Abstract class for Messages.
@@ -87,7 +87,7 @@ public:
 
     string getName(){return "StartGame";}
 
-    MessageType getType(){return START_GAME;}
+    MessageType getType(){return START_GAME_PEER;}
 };
 
 /**

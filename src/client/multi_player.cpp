@@ -101,7 +101,7 @@ SocketWrapper* waitForPeer(int port){
     Host p = sw->getConnectedHost();
     cout<<"Accepted client: "<<p.toString()<<endl;
 
-    StartGameMessage *sgm = dynamic_cast<StartGameMessage*>(sw->receiveMsg(START_GAME));
+    StartGameMessage *sgm = dynamic_cast<StartGameMessage*>(sw->receiveMsg(START_GAME_PEER));
 
     if (sgm == NULL){
         LOG(LOG_ERR, "Connection error");

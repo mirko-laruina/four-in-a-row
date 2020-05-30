@@ -19,7 +19,7 @@ Message* readMessage(char *buffer, msglen_t len){
     int ret;
 
     switch(buffer[0]){
-        case START_GAME:
+        case START_GAME_PEER:
             m = new StartGameMessage;
             break;
         case MOVE:
@@ -70,7 +70,7 @@ Message* readMessage(char *buffer, msglen_t len){
 
 
 msglen_t StartGameMessage::write(char *buffer){
-    buffer[0] = (char) START_GAME;
+    buffer[0] = (char) START_GAME_PEER;
     return 1;
 }
 
