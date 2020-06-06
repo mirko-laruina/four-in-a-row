@@ -4,6 +4,7 @@
 #include <openssl/rand.h>
 #include <openssl/pem.h>
 #include <string.h>
+#include <iostream>
 
 void handleErrors(void)
 {
@@ -224,4 +225,59 @@ int get_rand(){
     int random_num;
     RAND_bytes((unsigned char *)&random_num, sizeof(random_num));
     return random_num;
+}
+
+X509* load_cert_file(char* file_name){
+    FILE* cert_file = fopen(file_name, "r");
+    if(!cert_file){
+        return NULL;
+    }
+    X509* cert = PEM_read_X509(cert_file, NULL, NULL, NULL);
+    fclose(cert_file);
+    return cert;
+}
+
+X509_CRL* load_crl_file(char* file_name){
+    FILE* crl_file = fopen(file_name, "r");
+    if(!crl_file){
+        return NULL;
+    }
+    X509_CRL* crl = PEM_read_X509_CRL(crl_file, NULL, NULL, NULL);
+    fclose(crl_file);
+    return crl;
+}
+
+X509_STORE* build_store(X509* cacert, X509_CRL* crl){
+    X509_STORE* store = X509_STORE_new();
+    if(!store){
+        handleErrors();
+    }
+    if(1 != X509_STORE_add_cert(store, cacert)){
+        handleErrors();
+    }
+    if(1 != X509_STORE_add_crl(store, crl)){
+        handleErrors();
+    }
+    if(1 != X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK)){
+        handleErrors();
+    }
+    
+    return store;
+}
+
+bool verify_peer_cert(X509_STORE* store, X509* cert){
+    X509_STORE_CTX* verify_ctx = X509_STORE_CTX_new();
+    if(!verify_ctx){
+        handleErrors();
+    }
+
+    if(1 != X509_STORE_CTX_init(verify_ctx, store, cert, NULL)){
+        handleErrors();
+    }
+
+    if(1 != X509_verify_cert(verify_ctx)){
+        ERR_print_errors_fp(stderr);
+        return false;
+    }
+    return true;
 }
