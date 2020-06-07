@@ -388,15 +388,15 @@ void hkdf_one_info(unsigned char *key, size_t key_len,
 
 void hkdf(unsigned char *key, size_t key_len,
           nonce_t nonce1, nonce_t nonce2,
-          unsigned char *label, size_t label_len,
+          char *label,
           unsigned char *out, size_t outlen)
 {
     // label is a string, we remove the termination null char
-    size_t info_len = sizeof(nonce_t) * 2 + label_len-1;
+    size_t info_len = sizeof(nonce_t) * 2 + strlen(label);
     unsigned char *info = (unsigned char *)malloc(info_len);
     unsigned char *info_buf = info;
-    memcpy(info_buf, label, label_len-1);
-    info_buf += label_len-1;
+    strcpy((char *)info_buf, label);
+    info_buf += strlen(label);
     memcpy(info_buf, (void*) nonce1, sizeof(nonce1));
     info_buf += sizeof(nonce1);
     memcpy(info_buf, (void*) nonce2, sizeof(nonce2));
