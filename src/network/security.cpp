@@ -5,6 +5,9 @@
 #include <openssl/pem.h>
 #include <string.h>
 #include <openssl/hmac.h>
+#include <openssl/kdf.h>
+
+typedef uint32_t nonce_t;
 
 void handleErrors(void)
 {
@@ -318,12 +321,12 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
     const EVP_MD *md = EVP_sha256();
     unsigned int hash_size = EVP_MD_size(md);
     unsigned int hmac_len;
-    unsigned char* hmac = (unsigned char *)malloc(hash_size);
+    unsigned char *hmac = (unsigned char *)malloc(hash_size);
 
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_Init_ex(ctx, key, keylen, md, NULL);
 
-    HMAC_Update(ctx, (unsigned char*) msg, sizeof(msg));
+    HMAC_Update(ctx, (unsigned char *)msg, sizeof(msg));
     HMAC_Final(ctx, hmac, &hash_size);
 
     HMAC_CTX_free(ctx);
@@ -337,10 +340,67 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
     return hash_size;
 }
 
-bool compare_hmac(unsigned char* hmac_expected, unsigned char* hmac_rcv, unsigned int len){
-    if( 0 != CRYPTO_memcmp(hmac_expected, hmac_rcv, len)){
+bool compare_hmac(unsigned char *hmac_expected, unsigned char *hmac_rcv, unsigned int len)
+{
+    if (0 != CRYPTO_memcmp(hmac_expected, hmac_rcv, len))
+    {
         return false;
-    } else {
+    }
+    else
+    {
         return true;
     }
+}
+
+void hkdf_one_info(unsigned char *key, size_t key_len,
+                   unsigned char *info, size_t info_len,
+                   unsigned char *out, size_t outlen)
+{
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+    if (!ctx)
+    {
+        handleErrors();
+    }
+
+    if (EVP_PKEY_derive_init(ctx) <= 0)
+    {
+        handleErrors();
+    }
+
+    if (EVP_PKEY_CTX_set_hkdf_md(ctx, EVP_sha256()) <= 0)
+    {
+        handleErrors();
+    }
+    if (EVP_PKEY_CTX_set1_hkdf_key(ctx, key, key_len) <= 0)
+    {
+        handleErrors();
+    }
+    if (EVP_PKEY_CTX_add1_hkdf_info(ctx, (unsigned char *)info, info_len) <= 0)
+    {
+        handleErrors();
+    }
+    if (EVP_PKEY_derive(ctx, out, &outlen) <= 0)
+    {
+        handleErrors();
+    }
+    EVP_PKEY_CTX_free(ctx);
+}
+
+void hkdf(unsigned char *key, size_t key_len,
+          nonce_t nonce1, nonce_t nonce2,
+          unsigned char *label, size_t label_len,
+          unsigned char *out, size_t outlen)
+{
+    // label is a string, we remove the termination null char
+    size_t info_len = sizeof(nonce_t) * 2 + label_len-1;
+    unsigned char *info = (unsigned char *)malloc(info_len);
+    unsigned char *info_buf = info;
+    memcpy(info_buf, label, label_len-1);
+    info_buf += label_len-1;
+    memcpy(info_buf, (void*) nonce1, sizeof(nonce1));
+    info_buf += sizeof(nonce1);
+    memcpy(info_buf, (void*) nonce2, sizeof(nonce2));
+
+    hkdf_one_info(key, key_len, info, info_len, out, outlen);
+    free(info);
 }
