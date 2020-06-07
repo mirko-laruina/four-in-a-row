@@ -71,10 +71,11 @@ int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
 
 int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
                     unsigned char *aad, int aad_len,
-                    unsigned char *tag,
                     unsigned char *key,
                     unsigned char *iv,
-                    unsigned char *plaintext)
+                    unsigned char *plaintext,
+                    unsigned char *tag
+                    )
 {
     EVP_CIPHER_CTX *ctx;
     int len;
@@ -321,7 +322,7 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
     const EVP_MD *md = EVP_sha256();
     unsigned int hash_size = EVP_MD_size(md);
     unsigned int hmac_len;
-    unsigned char *hmac = (unsigned char *)malloc(hash_size);
+    hmac = (unsigned char *)malloc(hash_size);
 
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_Init_ex(ctx, key, keylen, md, NULL);
@@ -397,9 +398,9 @@ void hkdf(unsigned char *key, size_t key_len,
     unsigned char *info_buf = info;
     strcpy((char *)info_buf, label);
     info_buf += strlen(label);
-    memcpy(info_buf, (void*) nonce1, sizeof(nonce1));
+    memcpy(info_buf, (void *)&nonce1, sizeof(nonce1));
     info_buf += sizeof(nonce1);
-    memcpy(info_buf, (void*) nonce2, sizeof(nonce2));
+    memcpy(info_buf, (void *)&nonce2, sizeof(nonce2));
 
     hkdf_one_info(key, key_len, info, info_len, out, outlen);
     free(info);
