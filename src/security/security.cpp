@@ -1,13 +1,4 @@
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/pem.h>
-#include <string.h>
-#include <openssl/hmac.h>
-#include <openssl/kdf.h>
-
-typedef uint32_t nonce_t;
+#include "security/crypto.h"
 
 void handleErrors(void)
 {
@@ -131,7 +122,7 @@ int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
     }
 }
 
-int get_ecdh_key(EVP_PKEY **keypair)
+int get_ecdh_key(EVP_PKEY **key)
 {
     EVP_PKEY *dh_params = NULL;
     EVP_PKEY_CTX *ctx_params;
@@ -183,14 +174,14 @@ int get_ecdh_key(EVP_PKEY **keypair)
         handleErrors();
     }
 
-    ret = EVP_PKEY_keygen(ctx, keypair);
+    ret = EVP_PKEY_keygen(ctx, key);
     if (!ret)
     {
         handleErrors();
     }
 
     //check
-    if (keypair == NULL)
+    if (key == NULL)
     {
         handleErrors();
         return ret;
@@ -200,7 +191,14 @@ int get_ecdh_key(EVP_PKEY **keypair)
     return ret;
 }
 
-/** shared_key will be allocated, pass an uninitialized ptr */
+/**
+ * @brief Apply the DHKE to derive a shared secret
+ * 
+ * @param my_key        first key
+ * @param peer_pubkey   second key
+ * @param shared_key    output buffer location (unallocated), it will contained the shared key
+ * @return int          ???
+ */
 int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key)
 {
     EVP_PKEY_CTX *derivation_ctx;
@@ -239,6 +237,11 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key)
     return 0;
 }
 
+/**
+ * @brief Get a random number
+ * 
+ * @return int  the random number
+ */
 int get_rand()
 {
     RAND_poll();
@@ -247,6 +250,12 @@ int get_rand()
     return random_num;
 }
 
+/**
+ * @brief Load a certificate from file
+ * 
+ * @param file_name     file name of the certificate
+ * @return X509*        the certificate ptr, NULL if not read correctly
+ */
 X509 *load_cert_file(char *file_name)
 {
     FILE *cert_file = fopen(file_name, "r");
@@ -259,6 +268,12 @@ X509 *load_cert_file(char *file_name)
     return cert;
 }
 
+/**
+ * @brief Load certificate revocation list from file
+ * 
+ * @param file_name    file name
+ * @return X509_CRL*   the CRL, NULL if not read correctly
+ */
 X509_CRL *load_crl_file(char *file_name)
 {
     FILE *crl_file = fopen(file_name, "r");
@@ -271,6 +286,13 @@ X509_CRL *load_crl_file(char *file_name)
     return crl;
 }
 
+/**
+ * @brief Build a CA store from CA certificate and CRL
+ * 
+ * @param cacert        CA certificate
+ * @param crl           CRL
+ * @return X509_STORE*  the store
+ */
 X509_STORE *build_store(X509 *cacert, X509_CRL *crl)
 {
     X509_STORE *store = X509_STORE_new();
@@ -294,6 +316,14 @@ X509_STORE *build_store(X509 *cacert, X509_CRL *crl)
     return store;
 }
 
+/**
+ * @brief 
+ * 
+ * @param store 
+ * @param cert 
+ * @return true 
+ * @return false 
+ */
 bool verify_peer_cert(X509_STORE *store, X509 *cert)
 {
     X509_STORE_CTX *verify_ctx = X509_STORE_CTX_new();
@@ -315,7 +345,6 @@ bool verify_peer_cert(X509_STORE *store, X509 *cert)
     return true;
 }
 
-/** hmac will be allocated, pass an unitialized ptr */
 int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
          unsigned char *hmac)
 {
