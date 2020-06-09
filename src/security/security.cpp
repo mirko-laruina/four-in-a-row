@@ -1,9 +1,25 @@
 #include "security/crypto.h"
+#include "logging.h"
 
-void handleErrors(void)
-{
-    ERR_print_errors_fp(stderr);
-    abort();
+/**
+ * @brief Print OpenSSL errors
+ */
+#define handleErrorsNoAbort(level) { \
+    LOG((level), "OpenSSL Exception"); \
+    FILE* stream; \
+    if (level < LOG_ERR) \
+        stream = stdout; \
+    else \
+        stream = stderr; \
+    ERR_print_errors_fp(stream); \
+}
+
+/**
+ * @brief Print OpenSSL errors and abort
+ */
+#define handleErrors() { \
+    handleErrorsNoAbort(LOG_ERR) \
+    abort(); \
 }
 
 int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,

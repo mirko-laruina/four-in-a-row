@@ -18,12 +18,6 @@
 typedef uint32_t nonce_t;
 
 /**
- * @brief Print OpenSSL errors
- * 
- */
-void handleErrors(void);
-
-/**
  * Encrypts using AES in GCM mode
  * 
  * @param plaintext     buffer where the plaintext is stored
