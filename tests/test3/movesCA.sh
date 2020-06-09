@@ -5,7 +5,7 @@ sleep 1
 echo list
 sleep 1
 echo challenge USERB
-sleep 10 # wait for USERB to setup a serverr
+sleep 2 # wait for USERB to setup a serverr
 echo "Connecting to USERB" 1>&2
 echo O
 echo 1
