@@ -1,0 +1,192 @@
+#include "security/crypto.h"
+#include <cstdlib>
+#include <cstring>
+
+using namespace std;
+
+static unsigned char aad[] = "LeChuck";
+static unsigned char plaintext[] = "How much wood would a woodchuck chuck if a woodchuck could chuck wood?";
+static unsigned char long_plaintext[] = "M1 A->B: \"How much wood would a woodchuck chuck if a woodchuck could chuck wood?\"\n M2A B->A: \"A woodchuck would chuck as much wood as a woodchuck could chuck if a woodchuck could chuck wood.\"\n OR        \"So much wood would a woodchuck chuck, if a woodchuck could chuck wood!\"\n OR        \"He would chuck, he would, as much as he could, and chuck as much wood as a woodchuck would if a woodchuck could chuck wood.\"";
+static unsigned char key[128] = "Guybrush Threepwood";
+static unsigned char iv[256];
+
+static char certfile[] = "Your Organisation CA_cert.pem";
+static char crlfile[] = "Your Organisation CA_crl.pem";
+
+int main(){
+    unsigned char ct[1024], tag[1024], pt[1024];
+    int ret;
+
+    // Single block encryption/decryption
+    
+    ret = aes_gcm_encrypt(plaintext, strlen((char*)plaintext)+1,
+                          aad, strlen((char*)aad)+1,
+                          key, iv, 
+                          ct, tag        
+    );
+
+    if (ret <= 0){
+        printf("AES_GCM encryption failed");
+        return 1;
+    }
+
+    ret = aes_gcm_decrypt(ct, ret,
+                          aad, strlen((char*)aad)+1,
+                          key,
+                          iv,
+                          pt,
+                          tag
+
+    );
+
+    if (ret <= 0){
+        printf("AES_GCM decryption failed");
+        return 1;
+    }
+
+    // printf((char*)pt);
+
+    if (strcmp((char*)plaintext, (char*)pt) != 0){
+        printf("AES_GCM decryption gave a wrong result");
+        return 1;
+    }
+
+    // Multiple block encryption/decryption
+
+    ret = aes_gcm_encrypt(long_plaintext, strlen((char*)long_plaintext)+1,
+                          aad, strlen((char*)aad)+1,
+                          key, iv, 
+                          ct, tag        
+    );
+
+    if (ret <= 0){
+        printf("AES_GCM long encryption failed");
+        return 1;
+    }
+
+    ret = aes_gcm_decrypt(ct, ret,
+                          aad, strlen((char*)aad)+1,
+                          key,
+                          iv,
+                          pt,
+                          tag
+
+    );
+
+    if (ret <= 0){
+        printf("AES_GCM long decryption failed");
+        return 1;
+    }
+
+    // printf((char*)pt);
+
+    if (strcmp((char*)long_plaintext, (char*)pt) != 0){
+        printf("AES_GCM decryption gave a wrong result\n");
+        return 1;
+    }
+
+    // Generate ECDH keys
+    EVP_PKEY *keyA=NULL, *keyB=NULL;
+    
+    ret = get_ecdh_key(&keyA);
+    if (ret != 1){
+        printf("ERROR: get_ecdh_key\n");
+        return 1;
+    }
+    
+    ret = get_ecdh_key(&keyB);
+    if (ret != 1){
+        printf("ERROR: get_ecdh_key\n");
+        return 1;
+    }
+
+    // ECDH
+    unsigned char secretA[4096], secretB[4096];
+    int lenA, lenB;
+
+    lenA = dhke(keyA, keyB, secretA);
+    lenB = dhke(keyA, keyB, secretB);
+    if (lenA != lenB || memcmp(secretA, secretB, lenA) != 0){
+        printf("ECDH secret is different\n");
+        return 1;
+    }
+
+    // random
+    int nonceA, nonceB;
+    nonceA = get_rand();
+    nonceB = get_rand();
+    if (nonceA == nonceB){
+        printf("PRNG are the same, you either won a lottery or made a mistake in the code!\n");
+        return 1;
+    }
+
+    // load cert, crl and build store
+    X509* cacert = load_cert_file(certfile);
+    X509_CRL* crl = load_crl_file(crlfile);
+    X509_STORE* store = build_store(cacert, crl);
+    
+    if (cacert == NULL || crl == NULL || store == NULL){
+        printf("Store initialization failed!\n");
+        return 1;
+    }
+
+    // verify certificate
+    X509* mirko_cert = load_cert_file("mirko_cert.pem");
+    X509* up_cert = load_cert_file("up_cert.pem");
+    X509* mrloucipher_cert = load_cert_file("mrloucipher_cert.pem");
+
+    if (!verify_peer_cert(store, mirko_cert)){
+        printf("Valid Mirko certificate flagged as invalid!\n");
+        return 1;
+    }
+
+    if (!verify_peer_cert(store, up_cert)){
+        printf("Valid Up certificate flagged as invalid!\n");
+        return 1;
+    }
+
+    if (verify_peer_cert(store, mrloucipher_cert)){
+        printf("Invalid Mr. Lou Cipher certificate flagged as valid!\n");
+        return 1;
+    }
+
+    //hmac
+    unsigned char hmac1[1024], hmac2[1024];
+    ret = hmac((char*)plaintext, strlen((char*)plaintext)+1,
+                (char*)key, strlen((char*)key)+1,
+                hmac1);
+    if (ret <= 0){
+        printf("hmac ERROR\n");
+        return 1;
+    }
+    ret = hmac((char*)plaintext, strlen((char*)plaintext)+1,
+                (char*)key, strlen((char*)key)+1,
+                hmac2);
+    if (ret <= 0){
+        printf("hmac ERROR\n");
+        return 1;
+    }
+    if (!compare_hmac(hmac1, hmac2, ret)){
+        printf("HMAC are different!\n");
+        return 1;
+    }
+
+    // hkdf
+    unsigned char key1[256], key2[256];
+    hkdf(key, strlen((char*)key)+1, nonceA, nonceB,
+        "elaine", key1, 256);
+    hkdf(key, strlen((char*)key)+1, nonceA, nonceB,
+        "elaine", key2, 256);
+    if (memcmp(key1, key2, 256) != 0){
+        printf("HKDF produced different keys!\n");
+        return 1;
+    }
+    hkdf(key, strlen((char*)key)+1, nonceA, nonceB,
+        "lechuck", key2, 256);
+    if (memcmp(key1, key2, 256) == 0){
+        printf("HKDF produced same key with different paramenters!\n");
+        return 1;
+    }
+
+    return 0;
+}
