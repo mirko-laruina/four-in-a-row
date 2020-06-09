@@ -250,7 +250,7 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key)
     }
 
     EVP_PKEY_CTX_free(derivation_ctx);
-    return 0;
+    return shared_key_len;
 }
 
 /**

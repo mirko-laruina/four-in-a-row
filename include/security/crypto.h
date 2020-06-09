@@ -73,7 +73,7 @@ int get_ecdh_key(EVP_PKEY **key);
  * @param my_key        first key
  * @param peer_pubkey   second key
  * @param shared_key    output buffer location (unallocated), it will contained the shared key
- * @return int          ???
+ * @return int          shared_key length
  */
 int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key);
 
