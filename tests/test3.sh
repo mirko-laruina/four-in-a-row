@@ -11,13 +11,13 @@ trap cleanup EXIT
 
 dir=$(dirname $0)
 
-timeout 30 "$dir/../dist/server/server" 11225 > "/tmp/server.out" &
+timeout 7 "$dir/../dist/server/server" 11225 > "/tmp/server.out" &
 
 sleep 1
 
 sh "$dir/test3/movesCB.sh" | "$dir/../dist/client/client" > "/tmp/clientCB.out" &
 
-sleep 5
+sleep 1
 
 sh "$dir/test3/movesCA.sh" | "$dir/../dist/client/client" > "/tmp/clientCA.out" &
 
