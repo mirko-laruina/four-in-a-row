@@ -62,6 +62,10 @@ int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
 /**
  * @brief Generate a ECDH key
  * 
+ * Example of usage:
+ * EVP_PKEY *key=NULL;
+ * int ret = get_ecdh_key(&key);
+ * 
  * @param key   the generated key 
  * @return int  ???
  */
