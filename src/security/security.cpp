@@ -353,12 +353,15 @@ bool verify_peer_cert(X509_STORE *store, X509 *cert)
         handleErrors();
     }
 
-    if (1 != X509_verify_cert(verify_ctx))
-    {
-        ERR_print_errors_fp(stderr);
+    int ret = ret = X509_verify_cert(verify_ctx);
+    if (ret == 1){
+        return true;
+    } else if (ret == 0){
+        return false;
+    } else {
+        handleErrorsNoAbort(LOG_DEBUG);
         return false;
     }
-    return true;
 }
 
 int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
