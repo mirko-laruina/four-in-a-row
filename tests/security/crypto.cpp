@@ -14,7 +14,7 @@ static char certfile[] = "Your Organisation CA_cert.pem";
 static char crlfile[] = "Your Organisation CA_crl.pem";
 
 int main(){
-    unsigned char ct[1024], tag[1024], pt[1024];
+    unsigned char ct[1024], tag[16], pt[1024];
     int ret;
 
     // Single block encryption/decryption
@@ -41,6 +41,24 @@ int main(){
 
     if (ret <= 0){
         printf("AES_GCM decryption failed");
+        return 1;
+    }
+
+    strncpy((char*)tag, "Tag is wrong   ", 16);
+
+    ret = aes_gcm_decrypt(ct, ret,
+                          aad, strlen((char*)aad)+1,
+                          key,
+                          iv,
+                          pt,
+                          tag
+
+    );
+
+    printf("%d\n", ret);
+
+    if (ret > 0){
+        printf("AES_GCM flagged wrong tag as authentic!\n");
         return 1;
     }
 
