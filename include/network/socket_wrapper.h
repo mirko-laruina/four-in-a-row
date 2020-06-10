@@ -71,7 +71,7 @@ public:
      * 
      * @returns the received message or null if an error occurred
      */
-    Message* receiveAnyMsg();
+    virtual Message* receiveAnyMsg();
 
     /** 
      * Receive a new message of the given type from the socket.

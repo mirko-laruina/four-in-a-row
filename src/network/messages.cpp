@@ -19,6 +19,9 @@ Message* readMessage(char *buffer, msglen_t len){
     int ret;
 
     switch(buffer[0]){
+        case SECURE_MESSAGE:
+            m = new SecureMessage;
+            break;
         case START_GAME_PEER:
             m = new StartGameMessage;
             break;
@@ -224,16 +227,16 @@ msglen_t GameStartMessage::read(char *buffer, msglen_t len){
 }
 
 msglen_t SecureMessage::write(char* buffer){
-    buffer[0] = (char) getType();
-    memcpy(buffer+1, ct, size()-1);
+    buffer[0] = (char) SECURE_MESSAGE;
+    memcpy(&buffer[1], ct, size()-1);
     return size();
 }
 
 msglen_t SecureMessage::read(char* buffer, msglen_t len){
-    type = (MessageType) buffer[0];
     setSize(len);
     ct = (char*) malloc(len-1);
     if(!ct){
+        LOG(LOG_WARN, "Malloc failed for message of length %d", len);
         return -1;
     }
     memcpy(ct, buffer+1, len-1);

@@ -46,7 +46,7 @@
 #define LOG(level, ...) do {  \
                           if (level <= LOG_LEVEL) { \
                             FILE *dbgstream; \
-                            char where[35]; \
+                            char where[50]; \
                             switch(level){ \
                               case LOG_FATAL: \
                                 dbgstream = stderr; \
@@ -70,7 +70,7 @@
                                 break; \
                             } \
                             fprintf(dbgstream, "[%-5d]", (int) getpid()); \
-                            snprintf(where, 35, "%s:%d", __FILE__, __LINE__); \
+                            snprintf(where, 50, "%s:%d", __FILE__, __LINE__); \
                             fprintf(dbgstream, " %-25s ", where); \
                             fprintf(dbgstream, __VA_ARGS__); \
                             fprintf(dbgstream, "\n"); \
