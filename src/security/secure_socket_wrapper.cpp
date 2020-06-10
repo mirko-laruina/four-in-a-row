@@ -17,22 +17,21 @@ Message* SecureSocketWrapper::decryptMsg(SecureMessage* sm){
     char* buffer = (char*) malloc(sm_len);
     int buf_len = sm->write(buffer);
 
-    unsigned char* pt = (unsigned char*) malloc(buf_len-1);
-    unsigned char* tag = (unsigned char*) malloc(256);
+    msglen_t pt_len = buf_len-1-TAG_SIZE;
+    unsigned char* pt = (unsigned char*) malloc(pt_len);
 
-    int ret = aes_gcm_decrypt((unsigned char*) &buffer[1], buf_len-1, NULL, 0,
+    int ret = aes_gcm_decrypt((unsigned char*) &buffer[1], pt_len, NULL, 0,
                               (unsigned char*) sym_key, (unsigned char*) iv,
-                                pt, tag);
+                                pt, (unsigned char*) &buffer[buf_len-TAG_SIZE]);
     LOG(LOG_DEBUG, "Decrypted message of size %d", ret);
         
     if(ret <= 0){
         LOG(LOG_ERR, "Could not decrypt the message");
     }
 
-    Message* m = readMessage((char*) pt, buf_len-1);
+    Message* m = readMessage((char*) pt, pt_len);
     free(buffer);
     free(pt);
-    free(tag);
     return m;
 }
 
@@ -42,23 +41,24 @@ SecureMessage* SecureSocketWrapper::encryptMsg(Message* m){
     char* buffer = (char*) malloc(m_len);
     int buf_len = m->write(buffer);
     
-    unsigned char* ct = (unsigned char*) malloc(buf_len+1);
-    unsigned char* tag = (unsigned char*) malloc(256);
+    unsigned char* ct = (unsigned char*) malloc(buf_len+1+TAG_SIZE);
+    unsigned char* tag = (unsigned char*) malloc(TAG_SIZE);
     ct[0] = (MessageType) SECURE_MESSAGE;
     
     int ret = aes_gcm_encrypt((unsigned char*) buffer, buf_len, NULL, 0,
                                 (unsigned char*) sym_key, (unsigned char*) iv,
                                 &ct[1], tag);
+    memcpy(ct+buf_len+1, tag, TAG_SIZE);
 
     LOG(LOG_DEBUG, "Message encrypted %d bytes", ret);
-    LOG(LOG_DEBUG, "SecureMessage of size %d", buf_len+1);
+    LOG(LOG_DEBUG, "SecureMessage of size %d", buf_len+1+TAG_SIZE);
     
     if(ret <= 0){
         LOG(LOG_ERR, "Could not encrypt the message");
     }
 
     SecureMessage* sm = new SecureMessage();
-    sm->read((char*) ct, buf_len+1);
+    sm->read((char*) ct, buf_len+1+TAG_SIZE);
     free(ct);
     free(buffer);
     free(tag);

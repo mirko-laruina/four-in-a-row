@@ -228,17 +228,20 @@ msglen_t GameStartMessage::read(char *buffer, msglen_t len){
 
 msglen_t SecureMessage::write(char* buffer){
     buffer[0] = (char) SECURE_MESSAGE;
-    memcpy(&buffer[1], ct, size()-1);
+    memcpy(&buffer[1], ct, size()-1-16);
+    memcpy(&buffer[size()-16], tag, 16);
     return size();
 }
 
 msglen_t SecureMessage::read(char* buffer, msglen_t len){
     setSize(len);
-    ct = (char*) malloc(len-1);
+    ct = (char*) malloc(len-1-16);
+    tag = (char*) malloc(16);
     if(!ct){
         LOG(LOG_WARN, "Malloc failed for message of length %d", len);
         return -1;
     }
-    memcpy(ct, buffer+1, len-1);
+    memcpy(ct, buffer+1, len-1-16);
+    memcpy(tag, buffer+len, 16);
     return 0;
 }

@@ -125,7 +125,7 @@ int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    if (ret > -40)
+    if (ret > 0)
     {
         /* Success */
         plaintext_len += len;
