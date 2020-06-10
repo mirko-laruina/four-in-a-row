@@ -11,7 +11,7 @@
 #ifndef MULTI_PLAYER_H
 #define MULTI_PLAYER_H
 
-#include "network/socket_wrapper.h"
+#include "security/secure_socket_wrapper.h"
 #include "network/host.h"
 
 #define MY_TURN    (0)
@@ -20,16 +20,16 @@
 /**
  * Play against the player at the given socket
  */
-int playWithPlayer(int turn, SocketWrapper *sw);
+int playWithPlayer(int turn, SecureSocketWrapper *sw);
 
 /**
  * Starts a server on the given port waiting for peers to connect.
  */
-SocketWrapper* waitForPeer(int port);
+SecureSocketWrapper* waitForPeer(int port);
 
 /**
  * Connects to the server of another peer.
  */
-SocketWrapper* connectToPeer(Host peer);
+SecureSocketWrapper* connectToPeer(Host peer);
 
 #endif // MULTI_PLAYER_H

@@ -12,7 +12,7 @@
 #include "connect4.h"
 #include <iostream>
 
-int playWithPlayer(int turn, SocketWrapper *sw){
+int playWithPlayer(int turn, SecureSocketWrapper *sw){
     int choosen_col, adv_col;
     int win;
     char in_buffer[256];
@@ -90,13 +90,13 @@ int playWithPlayer(int turn, SocketWrapper *sw){
     return 0;
 }
 
-SocketWrapper* waitForPeer(int port){
-    ServerSocketWrapper *ssw;
-    ssw = new ServerSocketWrapper(port);
+SecureSocketWrapper* waitForPeer(int port){
+    ServerSecureSocketWrapper *ssw;
+    ssw = new ServerSecureSocketWrapper(port);
 
     cout<<"Waiting for connection on port: "<<ssw->getPort()<<endl;
 
-    SocketWrapper *sw = ssw->acceptClient();
+    SecureSocketWrapper *sw = ssw->acceptClient();
 
     Host p = sw->getConnectedHost();
     cout<<"Accepted client: "<<p.toString()<<endl;
@@ -112,10 +112,10 @@ SocketWrapper* waitForPeer(int port){
     return sw;
 }
 
-SocketWrapper* connectToPeer(Host peer){
+SecureSocketWrapper* connectToPeer(Host peer){
     cout<<"Connecting to: "<<peer.toString()<<endl;
 
-    ClientSocketWrapper *csw = new ClientSocketWrapper();
+    ClientSecureSocketWrapper *csw = new ClientSecureSocketWrapper();
 
     int ret = csw->connectServer(peer);
 

@@ -126,6 +126,7 @@ Message* SocketWrapper::receiveMsg(MessageType type){
 }
 
 Message* SocketWrapper::receiveMsg(MessageType type[], int n_types){
+    LOG(LOG_ERR, "I'm here\n");
     Message *m = NULL;
     while (m == NULL){
         try{

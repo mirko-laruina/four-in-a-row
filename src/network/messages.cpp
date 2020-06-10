@@ -222,3 +222,20 @@ msglen_t GameStartMessage::read(char *buffer, msglen_t len){
         min(MAX_USERNAME_LENGTH, len-1-SERIALIZED_SOCKADDR_IN_LEN));
     return 0;
 }
+
+msglen_t SecureMessage::write(char* buffer){
+    buffer[0] = (char) getType();
+    memcpy(buffer+1, ct, size()-1);
+    return size();
+}
+
+msglen_t SecureMessage::read(char* buffer, msglen_t len){
+    type = (MessageType) buffer[0];
+    setSize(len);
+    ct = (char*) malloc(len-1);
+    if(!ct){
+        return -1;
+    }
+    memcpy(ct, buffer+1, len-1);
+    return 0;
+}

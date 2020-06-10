@@ -119,6 +119,8 @@ public:
      */
     void setOtherAddr(struct sockaddr_in addr){other_addr = addr;}
 
+    sockaddr_in* getOtherAddr() { return &other_addr;}
+
     /**
      * Returns connected host.
      */

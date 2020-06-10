@@ -76,7 +76,7 @@ struct ConnectionMode promptChooseConnection(){
 
 
 int main(int argc, char** argv){
-    SocketWrapper *sw;
+    SecureSocketWrapper *sw;
 
     srand(time(NULL));
 

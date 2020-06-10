@@ -10,7 +10,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "network/socket_wrapper.h"
+#include "security/secure_socket_wrapper.h"
 #include "network/host.h"
 
 using namespace std;
@@ -21,12 +21,12 @@ using namespace std;
 class Server{
 private:
     Host host;
-    ClientSocketWrapper* sw;
+    ClientSecureSocketWrapper* sw;
 public:
     /**
      * Constructor
      */
-    Server(Host host) : host(host) {sw = new ClientSocketWrapper();}
+    Server(Host host) : host(host) {sw = new ClientSecureSocketWrapper();}
 
     /** 
      * Destructor
@@ -83,7 +83,7 @@ public:
     /**
      * Returns the internal SocketWrapper.
      */
-    SocketWrapper* getSocketWrapper(){return sw;}
+    SecureSocketWrapper* getSocketWrapper(){return sw;}
 };
 
 #endif // SERVER_H

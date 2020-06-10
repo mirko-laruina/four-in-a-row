@@ -319,7 +319,7 @@ int main(int argc, char** argv){
 
     int port = atoi(argv[1]);
 
-    ServerSocketWrapper server_sw(port);
+    ServerSecureSocketWrapper server_sw(port);
 
     init_threads();
 
@@ -356,7 +356,7 @@ int main(int argc, char** argv){
             if (FD_ISSET(i, &read_fd_set)){
                 if (i == server_sw.getDescriptor()) {
                     /* Connection request on original socket. */
-                    SocketWrapper* sw = server_sw.acceptClient();
+                    SecureSocketWrapper* sw = server_sw.acceptClient();
 
                     LOG(LOG_INFO, "New connection from %s", 
                         sw->getConnectedHost().toString().c_str());

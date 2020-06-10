@@ -326,6 +326,22 @@ public:
     MessageType getType(){return GAME_START;}
 };
 
+class SecureMessage : public Message {
+    private:
+        MessageType type;
+        char* ct;
+        int size_;
+    public:
+        MessageType getType(){ return type; }
+        void setType(MessageType t) { type=t; }
+        msglen_t size() { return size_; }
+        void setSize(int s) {size_ = s; }
+        string getName() {return "Encrypted message"; }
+        msglen_t write(char *buffer);
+        msglen_t read(char *buffer, msglen_t len);
+                
+};
+
 /**
  * Reads the message using the correct class and returns a pointer to it.
  * 

@@ -5,7 +5,8 @@
  * @date 2020-06-07
  * 
  */
-
+#ifndef CRYPTO_H
+#define CRYPTO_H
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -14,6 +15,7 @@
 #include <openssl/hmac.h>
 #include <openssl/kdf.h>
 #include <string.h>
+#include "logging.h"
 
 typedef uint32_t nonce_t;
 
@@ -177,3 +179,5 @@ void hkdf(unsigned char *key, size_t key_len,
           nonce_t nonce1, nonce_t nonce2,
           char *label,
           unsigned char *out, size_t outlen);
+
+#endif
