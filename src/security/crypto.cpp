@@ -353,7 +353,7 @@ bool verify_peer_cert(X509_STORE *store, X509 *cert)
         handleErrors();
     }
 
-    int ret = ret = X509_verify_cert(verify_ctx);
+    int ret = X509_verify_cert(verify_ctx);
     if (ret == 1){
         return true;
     } else if (ret == 0){
@@ -369,7 +369,6 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
 {
     const EVP_MD *md = EVP_sha256();
     unsigned int hash_size = EVP_MD_size(md);
-    unsigned int hmac_len;
     hmac = (unsigned char *)malloc(hash_size);
 
     HMAC_CTX *ctx = HMAC_CTX_new();

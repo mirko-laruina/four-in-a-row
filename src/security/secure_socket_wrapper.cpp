@@ -59,6 +59,9 @@ SecureMessage* SecureSocketWrapper::encryptMsg(Message* m){
 
     SecureMessage* sm = new SecureMessage();
     sm->read((char*) ct, buf_len+1);
+    free(ct);
+    free(buffer);
+    free(tag);
     return sm;
 }
 
@@ -79,7 +82,10 @@ Message* SecureSocketWrapper::receiveAnyMsg(){
 
 int SecureSocketWrapper::sendMsg(Message *msg){
     SecureMessage* sm = encryptMsg(msg);
-    SocketWrapper::sendMsg(sm);
+    if(!sm){
+        return 1;
+    }
+    return SocketWrapper::sendMsg(sm);
 }
 
 int ClientSecureSocketWrapper::connectServer(Host host){
