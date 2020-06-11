@@ -22,6 +22,9 @@ Message* readMessage(char *buffer, msglen_t len){
         case SECURE_MESSAGE:
             m = new SecureMessage;
             break;
+        case CLIENT_HELLO:
+            m = new ClientHelloMessage;
+            break;
         case START_GAME_PEER:
             m = new StartGameMessage;
             break;
@@ -243,5 +246,21 @@ msglen_t SecureMessage::read(char* buffer, msglen_t len){
     }
     memcpy(ct, buffer+1, len-1-16);
     memcpy(tag, buffer+len-16, 16);
+    return 0;
+}
+
+msglen_t ClientHelloMessage::write(char* buffer){
+    buffer[0] = (MessageType) CLIENT_HELLO;
+    memcpy(&buffer[1], &nonce, sizeof(nonce));
+    memcpy(&buffer[1+sizeof(nonce)], eph_key, size()-1-sizeof(nonce));
+    return size();
+}
+
+msglen_t ClientHelloMessage::read(char* buffer, msglen_t len){
+    setSize(len);
+    memcpy(&nonce, &buffer[1], sizeof(nonce));
+    int key_len = len - sizeof(nonce) - 1;
+    eph_key = (EVP_PKEY* ) malloc(key_len);
+    memcpy(eph_key, &buffer[len-key_len], key_len );
     return 0;
 }

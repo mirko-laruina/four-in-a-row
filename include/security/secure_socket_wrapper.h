@@ -22,9 +22,14 @@
 class SecureSocketWrapper : public SocketWrapper
 {
 protected:
-     char *sym_key;
+     char sym_key[16];
      char my_iv[IV_SIZE];
      char other_iv[IV_SIZE];
+     char* my_id;
+     char* other_id;
+
+     int sendClientHello();
+     int sendServerHello(EVP_PKEY* client_eph_key);
 
 public:
      /** 
@@ -73,6 +78,9 @@ public:
          */
      Message* receiveAnyMsg();
 
+
+     Message* handleMsg(Message* msg);
+     int handleClientHello(ClientHelloMessage* chm);
      /**
          * Sends the given message to the peer host through the socket.
          * 
@@ -80,6 +88,13 @@ public:
          * @returns 0 in case of success, something else otherwise
          */
      int sendMsg(Message *msg);
+
+    /**
+     * @brief Estiblishes a secure connection over the already specified socket
+     * 
+     * @return int  0 in case of success, something else otherwise
+     */
+     int handshake();
 
 };
 

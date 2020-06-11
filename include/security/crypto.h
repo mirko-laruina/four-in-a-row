@@ -89,9 +89,17 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key);
 /**
  * @brief Get a random number
  * 
- * @return int  the random number
+ * @return nonce_t  the random number
  */
-int get_rand();
+nonce_t get_rand();
+
+/**
+ * @brief Fills a buffer with a random value
+ * 
+ * @param char  buffer to fill
+ * @param bytes number of bytes (buffer length)
+ */
+void get_rand(unsigned char* buffer, int bytes);
 
 /**
  * @brief Load a certificate from file

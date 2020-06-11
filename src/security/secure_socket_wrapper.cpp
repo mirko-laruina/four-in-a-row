@@ -2,22 +2,20 @@
 
 SecureSocketWrapper::SecureSocketWrapper() : SocketWrapper()
 {
-    sym_key = "test";
-    for (int i = 0; i < IV_SIZE; i++)
-    {
-        my_iv[i] = 0;
-        other_iv[i] = 0;
-    }
+    my_id = (char*) malloc(16);
+    get_rand((unsigned char*) my_id, 16);
+    memset(my_iv, 0, IV_SIZE);
+    memset(other_iv, 0, IV_SIZE);
+    buf_idx = 0;
 }
 
 SecureSocketWrapper::SecureSocketWrapper(int sd) : SocketWrapper(sd)
 {
-    sym_key = "test";
-    for (int i = 0; i < IV_SIZE; i++)
-    {
-        my_iv[i] = 0;
-        other_iv[i] = 0;
-    }
+    my_id = (char*) malloc(16);
+    memset(my_iv, 0, IV_SIZE);
+    memset(other_iv, 0, IV_SIZE);
+    get_rand((unsigned char*) my_id, 16);
+    buf_idx = 0;
 }
 
 Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
@@ -100,14 +98,46 @@ Message *SecureSocketWrapper::readPartMsg()
     {
         return NULL;
     }
-    return decryptMsg((SecureMessage*) m);
+    return handleMsg(m);
 }
 
 Message *SecureSocketWrapper::receiveAnyMsg()
 {
     LOG(LOG_INFO, "Any message secure socket wrapper");
     SecureMessage *sm = (SecureMessage *)SocketWrapper::receiveAnyMsg();
-    return decryptMsg(sm);
+    return handleMsg(sm);
+}
+
+Message *SecureSocketWrapper::handleMsg(Message* msg)
+{
+    int len = msg->size();
+    char* buffer = (char*)malloc(len);
+    msg->write(buffer);
+    switch (buffer[0])
+    {
+    case SECURE_MESSAGE:
+        return decryptMsg((SecureMessage*) msg);    
+    case CLIENT_HELLO:
+        handleClientHello((ClientHelloMessage*) msg);
+        return NULL;
+    default:
+        break;
+    };
+}
+
+int SecureSocketWrapper::handleClientHello(ClientHelloMessage* chm)
+{
+    char* buffer = (char*) malloc(chm->size());
+    int len = chm->write(buffer);
+    memcpy(other_iv, &buffer[1], sizeof(nonce_t));
+    int key_len = len-sizeof(nonce_t)-1;
+    EVP_PKEY* client_eph_key = (EVP_PKEY*) malloc(key_len);
+    memcpy(client_eph_key, &buffer[len-key_len], key_len);
+    LOG(LOG_INFO, "Set other IV to:");
+    DUMP_BUFFER_HEX_DEBUG(other_iv, IV_SIZE);
+    LOG(LOG_INFO, "Client eph key %d:", key_len);
+    DUMP_BUFFER_HEX_DEBUG((char *)client_eph_key, EVP_PKEY_size(client_eph_key));
+    return sendServerHello(client_eph_key);
 }
 
 int SecureSocketWrapper::sendMsg(Message *msg)
@@ -119,6 +149,52 @@ int SecureSocketWrapper::sendMsg(Message *msg)
     }
     return SocketWrapper::sendMsg(sm);
 }
+
+int SecureSocketWrapper::sendClientHello(){
+    nonce_t nonce = get_rand();
+    EVP_PKEY* eph_key = NULL;
+    get_ecdh_key(&eph_key);
+
+    int key_len = EVP_PKEY_size(eph_key);
+    LOG(LOG_INFO, "Key len is %d", key_len);
+    int len = 1+sizeof(nonce)+key_len;
+    char* buffer = (char*) malloc(len);
+    memcpy(&buffer[1], &nonce, sizeof(nonce));
+    memcpy(&buffer[len-key_len], eph_key, key_len);
+
+    ClientHelloMessage* chm = new ClientHelloMessage;
+    chm->read(buffer, len);
+    memcpy(my_iv, &nonce, sizeof(nonce));
+    LOG(LOG_INFO, "Set my IV to:");
+    DUMP_BUFFER_HEX_DEBUG(my_iv, IV_SIZE);
+    return SocketWrapper::sendMsg(chm);
+}
+
+int SecureSocketWrapper::sendServerHello(EVP_PKEY* client_eph_key){
+    nonce_t cl_nonce = (nonce_t) *other_iv;
+    nonce_t sv_nonce = get_rand();
+    EVP_PKEY* my_eph_key = NULL;
+    get_ecdh_key(&my_eph_key);
+
+    unsigned char* dk;
+
+    LOG(LOG_INFO, "My eph key:");
+    DUMP_BUFFER_HEX_DEBUG((char *)my_eph_key, EVP_PKEY_size(my_eph_key));
+    LOG(LOG_INFO, "Client eph key:");
+    DUMP_BUFFER_HEX_DEBUG((char *)client_eph_key, EVP_PKEY_size(client_eph_key));
+    int size = dhke(my_eph_key, client_eph_key, dk);
+
+    //Deriving the symmetric key
+    hkdf(dk, size, sv_nonce, cl_nonce, NULL, (unsigned char*) sym_key, 16 );
+    return 0;
+}
+
+int SecureSocketWrapper::handshake(){
+    if(!sendClientHello()){
+        return 0;
+    }
+}
+
 
 int ClientSecureSocketWrapper::connectServer(Host host)
 {
@@ -138,6 +214,7 @@ int ClientSecureSocketWrapper::connectServer(Host host)
         return ret;
     }
 
+    handshake();
     return ret;
 }
 

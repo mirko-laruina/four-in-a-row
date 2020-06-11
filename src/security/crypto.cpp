@@ -256,12 +256,12 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key)
 /**
  * @brief Get a random number
  * 
- * @return int  the random number
+ * @return nonce_t  the random number
  */
-int get_rand()
+nonce_t get_rand()
 {
     RAND_poll();
-    int random_num;
+    nonce_t random_num;
     RAND_bytes((unsigned char *)&random_num, sizeof(random_num));
     return random_num;
 }
@@ -272,7 +272,6 @@ int get_rand()
  * @param char  buffer to fill
  * @param bytes number of bytes (buffer length)
  */
-
 void get_rand(unsigned char* buffer, int bytes){
     RAND_poll();
     RAND_bytes(buffer, bytes);

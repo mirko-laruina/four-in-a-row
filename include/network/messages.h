@@ -19,6 +19,7 @@
 #include "config.h"
 #include "network/inet_utils.h"
 #include "network/host.h"
+#include "security/crypto.h"
 
 using namespace std;
 
@@ -37,6 +38,9 @@ typedef uint16_t msglen_t;
 enum MessageType
 {
     SECURE_MESSAGE,
+    CLIENT_HELLO,
+    SERVER_HELLO,
+    CLIENT_VERIFY,
     START_GAME_PEER,
     MOVE,
     REGISTER,
@@ -363,16 +367,40 @@ class SecureMessage : public Message
 {
 private:
     char *ct;
-    int size_;
+    msglen_t size_;
     char* tag;
 
 public:
+    SecureMessage() : ct(NULL), tag(NULL){}
+    ~SecureMessage(){ free(ct); free(tag); }
+
     MessageType getType() { return SECURE_MESSAGE; }
     msglen_t size() { return size_; }
-    void setSize(int s) { size_ = s; }
+    void setSize(msglen_t s) { size_ = s; }
     string getName() { return "Secure message"; }
+
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
+};
+
+class ClientHelloMessage: public Message
+{
+private:
+    msglen_t size_;
+    nonce_t nonce;
+    EVP_PKEY* eph_key;
+
+public:
+    ClientHelloMessage() : eph_key(NULL) {}
+    ~ClientHelloMessage() { free(eph_key); }
+
+    MessageType getType() {return CLIENT_HELLO; }
+    msglen_t size() { return size_; }
+    void setSize(msglen_t s) { size_ = s; }
+    string getName() { return "Client Hello message"; }
+    msglen_t write(char* buffer);
+    msglen_t read(char* buffer, msglen_t len);
+
 };
 
 /**

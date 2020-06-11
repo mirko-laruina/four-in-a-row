@@ -24,7 +24,7 @@ SocketWrapper::SocketWrapper() {
 }
 Message* SocketWrapper::readPartMsg(){
     int len;
-    msglen_t msglen;
+    msglen_t msglen = 0;
 
     if (buf_idx < sizeof(msglen)){ // I first need to read msglen
         // read available message
@@ -238,6 +238,8 @@ ServerSocketWrapper::ServerSocketWrapper(int port){
         LOG(LOG_ERR, "Error in setting socket to listen mode\n");
         perror("Error: ");        
     }
+
+    buf_idx = 0;
 }
 
 SocketWrapper* ServerSocketWrapper::acceptClient(){
