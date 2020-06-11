@@ -1,0 +1,47 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{parskip}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{lmodern}
+
+\usepackage{mathtools}
+\usepackage{amsmath}
+
+\usepackage{bytefield}
+
+\title{Four-in-a-Row Online -- Project Report}
+\author{Mirko Laruina, Riccardo Mancini}
+\date{\today}
+
+% Macros
+\newcommand{\believes}{\mid\equiv}
+\newcommand{\sees}{\triangleleft}
+\newcommand{\oncesaid}{\mid\sim}
+\newcommand{\controls}{\Rightarrow}
+\newcommand{\fresh}[1]{\#(#1)}
+\newcommand{\combine}[2]{{\langle #1 \rangle}_{#2}}
+\newcommand{\encrypt}[2]{{ \{ #1 \} }_{#2}}
+\newcommand{\sharekey}[1]{\xleftrightarrow{#1}}
+\newcommand{\pubkey}[1]{\xmapsto{#1}}
+\newcommand{\secret}[1]{\xleftrightharpoons{#1}}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\maketitle
+\vfill
+\setcounter{tocdepth}{2}
+\tableofcontents
+\vfill
+\clearpage
+\setcounter{page}{1}
+\pagenumbering{arabic}
+
+\include{specification}
+\include{protocol}
+\include{messages}
+
+\end{document}

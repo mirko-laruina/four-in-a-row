@@ -1,0 +1,89 @@
+\section{Communication Protocol}
+\subsection{Description}
+\subsubsection{Handshake Protocol}
+\subsubsection{Encrypted Message Protocol}
+
+\subsection{BAN-logic proof}
+\subsubsection{Real protocol}
+\begin{align*}
+    &M1 \; A \rightarrow B : A, B, N_A, K_A^E \\
+    &M2 \; B \rightarrow A : B, A, N_B, K_B^E, \{h(A,B,N_A,N_B,K_A^E,K_B^E)\}_{k_B^{-1}} \\
+    &M3 \; A \rightarrow B : \{h(A,B,N_A,N_B,K_A^E,K_B^E)\}_{k_A^{-1}}
+\end{align*}
+
+\subsubsection{Assumptions}
+\begin{align*}
+    \begin{split}
+        &A \believes \pubkey{K_B} B \\
+        &A \believes \fresh{\pubkey{K_A^E}A} \\
+        &A \believes \fresh{N_A} \\
+        &A \believes B \controls{\pubkey{K_B^E}B} \\
+        &A \believes B \controls{N_B}
+    \end{split}
+    \begin{split}
+        &B \believes \pubkey{K_A} A \\
+        &B \believes \fresh{\pubkey{K_B^E}B} \\
+        &B \believes \fresh{N_B} \\
+        &B \believes A \controls{\pubkey{K_A^E}A} \\
+        &B \believes A \controls{N_A}
+    \end{split}
+\end{align*}
+\subsubsection{Expected Conclusions}
+\begin{align*}
+    \begin{split}
+        &A \believes (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B) \\
+        &A \believes B \believes (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B)
+    \end{split}
+    \begin{split}
+        &B \believes (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B) \\
+        &B \believes B \believes (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B)
+    \end{split}
+\end{align*}
+
+\subsubsection{Idealized protocol}
+\begin{align*}
+    &M1 \; A \rightarrow B : N_A, \pubkey{K_A^E}A \\
+    &M2 \; B \rightarrow A : \{N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B\}_{k_B^{-1}} \\
+    &M3 \; A \rightarrow B : \{N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B\}_{k_A^{-1}}
+\end{align*}
+
+\subsubsection{Proof}
+\paragraph{After message 1} 
+From the first message, B just knows SOMEONE sent him a nonce and an ephemeral public key. 
+He will use these values in later exchanges but at the moment he knows nothing 
+about the sender.
+\begin{align*}
+    M1 \; &A \rightarrow B : N_A, \pubkey{K_A^E}A & \text{B does not know anything about the sender} \\
+    &B \sees (N_A,\pubkey{K_A^E}A)
+\end{align*}
+
+\paragraph{After message 2} 
+From this message A is able to verify B's identity and has confirmation that B
+actually knows the nonce and her ephemeral public key. A also receives B's 
+nonce and ephemeral public key.
+\begin{align*}
+    M2 \; &B \rightarrow A : \{N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B\}_{k_B^{-1}} & \text{apply message meaning postulate} \\
+    &A \believes B \oncesaid (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B) & \text{apply nonce verification postulate}  \\
+    &A \believes B \believes (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B) & \text{furthermore, due to juristiction postulate} \\
+    &A \believes (N_B,\pubkey{K_B^E}B)
+\end{align*}
+
+\paragraph{After message 3} 
+From this message B is able to verify A's identity and has confirmation that A
+actually knows the nonce and his ephemeral public key.
+\begin{align*}
+    M3 \; &A \rightarrow B : \{N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B\}_{k_A^{-1}} & \text{apply message meaning postulate} \\
+    &B \believes A \oncesaid (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B) & \text{apply nonce verification postulate}  \\
+    &B \believes A \believes (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B) & \text{furthermore, due to juristiction postulate} \\
+    &B \believes (N_A,\pubkey{K_A^E}A)
+\end{align*}
+
+\subsubsection{Final remarks}
+It is worthwhile to note that the nonces $N_A,N_B$ play no role in the proof of
+the protocol. 
+In fact, the nonce verification postulate could be applied also on the ephemeral 
+public keys (since they are fresh too). 
+Furthermore, the shared DH secret is guaranteed to always be different since 
+both parties choose an ephemeral public key at random at every handshake.
+Therefore, we could remove the random nonces from the protocol without loss of 
+security. 
