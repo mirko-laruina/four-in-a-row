@@ -17,12 +17,14 @@
 #include "network/host.h"
 #include "network/socket_wrapper.h"
 #include "security/crypto.h"
+#include "utils/dump_buffer.h"
 
 class SecureSocketWrapper : public SocketWrapper
 {
 protected:
      char *sym_key;
-     char *iv;
+     char my_iv[IV_SIZE];
+     char other_iv[IV_SIZE];
 
 public:
      /** 

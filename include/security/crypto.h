@@ -17,6 +17,9 @@
 #include <string.h>
 #include "logging.h"
 
+#define TAG_SIZE    16
+#define IV_SIZE     12
+
 typedef uint32_t nonce_t;
 
 /**

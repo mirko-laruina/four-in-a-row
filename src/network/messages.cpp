@@ -242,6 +242,6 @@ msglen_t SecureMessage::read(char* buffer, msglen_t len){
         return -1;
     }
     memcpy(ct, buffer+1, len-1-16);
-    memcpy(tag, buffer+len, 16);
+    memcpy(tag, buffer+len-16, 16);
     return 0;
 }

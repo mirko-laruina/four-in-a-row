@@ -364,6 +364,7 @@ class SecureMessage : public Message
 private:
     char *ct;
     int size_;
+    char* tag;
 
 public:
     MessageType getType() { return SECURE_MESSAGE; }

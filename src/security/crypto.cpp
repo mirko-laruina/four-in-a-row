@@ -267,6 +267,18 @@ int get_rand()
 }
 
 /**
+ * @brief Fills a buffer with a random value
+ * 
+ * @param char  buffer to fill
+ * @param bytes number of bytes (buffer length)
+ */
+
+void get_rand(unsigned char* buffer, int bytes){
+    RAND_poll();
+    RAND_bytes(buffer, bytes);
+}
+
+/**
  * @brief Load a certificate from file
  * 
  * @param file_name     file name of the certificate
