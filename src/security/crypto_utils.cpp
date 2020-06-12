@@ -61,9 +61,10 @@ string usernameFromCert(X509* cert){
 
     string subj_name_str(subj_name_cstr);
     size_t pos = subj_name_str.find("/CN=");
-    if (pos != string::npos)
+    if (pos != string::npos){
         username = subj_name_str.substr(pos+4);
-    else{
+        LOG(LOG_DEBUG, "%s has size %ld", username.c_str(), username.size());
+    } else{
         LOG(LOG_WARN, "Common name not found in cert: %s", subj_name_str.c_str());
         username = subj_name_str;
     }

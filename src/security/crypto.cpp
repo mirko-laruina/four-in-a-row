@@ -194,7 +194,7 @@ int get_ecdh_key(EVP_PKEY **key)
  * @param shared_key    output buffer location (unallocated), it will contained the shared key
  * @return int          ???
  */
-int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key)
+int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char **shared_key)
 {
     EVP_PKEY_CTX *derivation_ctx;
     size_t shared_key_len;
@@ -216,14 +216,14 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char *shared_key)
 
     // "Dummy" derivation to extract key len
     EVP_PKEY_derive(derivation_ctx, NULL, &shared_key_len);
-    shared_key = (unsigned char *)malloc(shared_key_len);
+    *shared_key = (unsigned char *)malloc(shared_key_len);
     if (!shared_key)
     {
         handleErrors();
     }
 
     // Real derivation
-    if (EVP_PKEY_derive(derivation_ctx, shared_key, &shared_key_len) <= 0)
+    if (EVP_PKEY_derive(derivation_ctx, *shared_key, &shared_key_len) <= 0)
     {
         handleErrors();
     }

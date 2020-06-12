@@ -31,8 +31,8 @@ typedef uint16_t msglen_t;
 #define MSGLEN_NTOH(x) ntohs((x))
 
 /** Utility for getting username size */
-inline size_t usernameSize(string username){
-    return min(username.size(), (size_t) MAX_USERNAME_LENGTH) + 1;
+inline size_t usernameSize(string s){
+    return min(strlen(s.c_str()), (size_t) MAX_USERNAME_LENGTH)+1;
 }
 
 /** Utility for getting username from buffer
@@ -42,7 +42,7 @@ inline size_t usernameSize(string username){
  * @returns the read string
  */
 inline string readUsername(char* buf, size_t buflen){
-    size_t size = min(strnlen(buf, buflen), (size_t) MAX_USERNAME_LENGTH);
+    size_t size = min(strnlen(buf, buflen-1), (size_t) MAX_USERNAME_LENGTH);
     return string(buf, size);
 }
 
@@ -56,10 +56,10 @@ inline string readUsername(char* buf, size_t buflen){
  * @returns number of written bytes
  */
 inline size_t writeUsername(string s, char* buf){
-    size_t strsize = min(s.size(), (size_t)MAX_USERNAME_LENGTH);
+    size_t strsize = usernameSize(s);
     strncpy(buf, s.c_str(), strsize);
-    buf[strsize] = '\0';
-    return strsize+1;
+    buf[strsize-1] = '\0'; // make sure it is null terminated
+    return strsize;
 }
 
 /**
@@ -401,17 +401,17 @@ class SecureMessage : public Message
 {
 private:
     char *ct;
-    msglen_t size_;
+    msglen_t ct_size;
     char* tag;
 
 public:
-    SecureMessage() : ct(NULL), tag(NULL){}
-    SecureMessage(char* ct, msglen_t size, char* tag) : ct(ct), size_(size), tag(tag){}
-    ~SecureMessage(){ free(ct); free(tag); }
+    SecureMessage() : ct(NULL), ct_size(0), tag(NULL){}
+    SecureMessage(char* ct, msglen_t ct_size, char* tag) : ct(ct), ct_size(ct_size), tag(tag){}
+    ~SecureMessage(){ if (ct != NULL) free(ct); if (tag != NULL) free(tag); }
 
     MessageType getType() { return SECURE_MESSAGE; }
-    msglen_t size() { return size_; }
-    void setSize(msglen_t s) { size_ = s; }
+    msglen_t size() { return 1 + TAG_SIZE + ct_size; }
+    void setCtSize(msglen_t s) { ct_size = s; }
     string getName() { return "Secure message"; }
     char* getCt() { return ct; }
     char* getTag() { return tag; }

@@ -50,7 +50,7 @@ protected:
      */
     SecureSocketWrapper() {};
 
-    void generateKeys(unsigned char* shared_secret, int size,  const char* role);
+    void generateKeys(const char* role);
     void updateSendIV();
     void updateRecvIV();
 

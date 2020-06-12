@@ -77,10 +77,18 @@ void doubleUnlock(User* u_keep_lock, User* u_unlock){
 bool handleRegisterMessage(User* u, RegisterMessage* msg){
     string username = msg->getUsername();
     u->setUsername(username);
-    u->setState(AVAILABLE);
-    // readd with username
-    user_list.add(u);
-    return true;
+
+    if (!user_list.exists(username)){
+        u->setState(AVAILABLE); 
+        // readd with username
+        user_list.add(u);
+        return true;
+    } else {
+        LOG(LOG_WARN, "User %s already registered!", username.c_str());
+        //TODO send error
+        u->setState(DISCONNECTED); 
+        return false;
+    }
 }
 
 bool handleChallengeMessage(User* u, ChallengeMessage* msg){
@@ -241,16 +249,18 @@ bool handleClientHelloMessage(User* u, ClientHelloMessage* chm){
         int ret = u->getSocketWrapper()->handleClientHello(chm);
         return ret == 0;
     } else{
+        LOG(LOG_WARN, "User %s not found in cert_map", username.c_str());
         return false;
     }
 }
 
 bool handleClientVerifyMessage(User* u, ClientVerifyMessage* cvm){
     int ret = u->getSocketWrapper()->handleClientVerify(cvm);
-    if(ret != 0){
-        u->setState(JUST_CONNECTED);
+    if(ret == 0){
+        u->setState(SECURELY_CONNECTED);
         return true;
     } else {
+        LOG(LOG_ERR, "Client Verify failed!");
         return false;
     }
 }

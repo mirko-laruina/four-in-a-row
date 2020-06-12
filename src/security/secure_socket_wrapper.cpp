@@ -49,11 +49,11 @@ SecureSocketWrapper::~SecureSocketWrapper(){
 
 Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
 {
-    if (!peer_authenticated){
-        LOG(LOG_WARN, "Unauthenticated peer sent encrypted message");
-        return NULL;
-    }
-    
+    // if (!peer_authenticated){
+    //     LOG(LOG_WARN, "Unauthenticated peer sent encrypted message");
+    //     return NULL;
+    // }
+
     msglen_t sm_len = sm->size();
     msglen_t pt_len = sm->size() - TAG_SIZE - 1;
     LOG(LOG_DEBUG, "Received SecureMessage of size %d", sm_len);
@@ -70,8 +70,6 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
     int ret = aes_gcm_decrypt((unsigned char *)sm->getCt(), pt_len, NULL, 0,
                               (unsigned char *)recv_key, (unsigned char *) recv_iv,
                               pt, (unsigned char *)sm->getTag());
-    LOG(LOG_DEBUG, "Decrypted message of size %d with iv", ret);
-    DUMP_BUFFER_HEX_DEBUG(recv_iv, IV_SIZE);
 
     if (ret <= 0)
     {
@@ -79,8 +77,16 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
         return NULL;
     }
 
+    LOG(LOG_DEBUG, "Decrypted message (%d):", ret);
+    DUMP_BUFFER_HEX_DEBUG((char*) pt, ret);
+
     Message *m = readMessage((char *)pt, pt_len);
 
+    if (m != NULL){
+        LOG(LOG_DEBUG, "Decrypted message of type %s", m->getName().c_str());
+    } else{
+        LOG(LOG_DEBUG, "Malformed message");
+    }
     free(pt);
     return m;
 }
@@ -116,11 +122,8 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
         return NULL;
     }
 
-    SecureMessage *sm = new SecureMessage(buffer, buf_len + 1 + TAG_SIZE, (char*) tag);
+    SecureMessage *sm = new SecureMessage((char*) ct, ret, (char*) tag);
 
-    free(ct);
-    free(buffer);
-    free(tag);
     return sm;
 }
 
@@ -136,7 +139,6 @@ Message *SecureSocketWrapper::readPartMsg()
 
 Message *SecureSocketWrapper::receiveAnyMsg()
 {
-    LOG(LOG_INFO, "Any message secure socket wrapper");
     Message *m = sw->receiveAnyMsg();
     
     return handleMsg(m);
@@ -195,14 +197,8 @@ int SecureSocketWrapper::handleServerHello(ServerHelloMessage* shm)
     sv_nonce = shm->getNonce();
     other_eph_key = shm->getEphKey();
 
-    unsigned char* dk;
-    dk = (unsigned char*) malloc(ECDH_SIZE);
-
-    int size = dhke(my_eph_key, other_eph_key, dk);
-
     //Deriving the symmetric key
-    generateKeys(dk, size, "client");
-    free(dk);
+    generateKeys("client");
 
     bool check = checkSignature(shm->getDs(), "client");
     if (!check){
@@ -223,6 +219,8 @@ int SecureSocketWrapper::handleClientVerify(ClientVerifyMessage* cvm)
         return -1;
     }
 
+    LOG(LOG_INFO, "Digital Signature verification succeded!");
+
     peer_authenticated = true;
 
     return 0;
@@ -235,7 +233,9 @@ int SecureSocketWrapper::sendMsg(Message *msg)
     {
         return 1;
     }
-    if (sw->sendMsg(sm) == 0){
+    int ret = sw->sendMsg(sm);
+    delete sm;
+    if (ret == 0){
         send_seq_num++;
         return 0;
     } else{
@@ -255,14 +255,8 @@ int SecureSocketWrapper::sendServerHello(){
     sv_nonce = get_rand();
     get_ecdh_key(&my_eph_key);
 
-    unsigned char* dk;
-    dk = (unsigned char*) malloc(ECDH_SIZE);
-
-    int size = dhke(my_eph_key, other_eph_key, dk);
-
     //Deriving the symmetric key
-    generateKeys(dk, size, "server");
-    free(dk);
+    generateKeys("server");
 
     char* ds = makeSignature("server");
     ServerHelloMessage shm(my_eph_key, sv_nonce, my_id, other_id, ds); 
@@ -275,8 +269,11 @@ int SecureSocketWrapper::sendClientVerify(){
     return sw->sendMsg(&cvm);
 }
 
-void SecureSocketWrapper::generateKeys(unsigned char* shared_secret, 
-                                       int size, const char* role){
+void SecureSocketWrapper::generateKeys(const char* role){
+    unsigned char *shared_secret = NULL;
+
+    int size = dhke(my_eph_key, other_eph_key, &shared_secret);
+
     const char* other_role;
     if (strcmp(role, "client") == 0){
         other_role = "server";
@@ -292,12 +289,31 @@ void SecureSocketWrapper::generateKeys(unsigned char* shared_secret,
     strcat(my_key_str, role);
     strcat(other_key_str, other_role);
     strcat(my_iv_str, role);
-    strcat(other_iv_str, role);
+    strcat(other_iv_str, other_role);
 
     hkdf(shared_secret, size, sv_nonce, cl_nonce, my_key_str, (unsigned char*) send_key, KEY_SIZE);
     hkdf(shared_secret, size, sv_nonce, cl_nonce, other_key_str, (unsigned char*) recv_key, KEY_SIZE);
     hkdf(shared_secret, size, sv_nonce, cl_nonce, my_iv_str, (unsigned char*) send_iv_static, IV_SIZE);
     hkdf(shared_secret, size, sv_nonce, cl_nonce, other_iv_str, (unsigned char*) recv_iv_static, IV_SIZE);
+
+    LOG(LOG_DEBUG, "HKDF parameters BEGIN --------");
+    LOG(LOG_DEBUG, "Shared secret:");
+    DUMP_BUFFER_HEX_DEBUG((char*) shared_secret, size);
+    LOG(LOG_DEBUG, "sv_nonce=%d", sv_nonce);
+    LOG(LOG_DEBUG, "cl_nonce=%d", cl_nonce);
+    LOG(LOG_DEBUG, "HKDF parameters END --------");
+    LOG(LOG_DEBUG, "Generated keys BEGIN --------");
+    LOG(LOG_DEBUG, "Send key (%s):", my_key_str);
+    DUMP_BUFFER_HEX_DEBUG(send_key, KEY_SIZE);
+    LOG(LOG_DEBUG, "Send IV (%s):", my_iv_str);
+    DUMP_BUFFER_HEX_DEBUG(send_iv_static, IV_SIZE);
+    LOG(LOG_DEBUG, "Recv key (%s):", other_key_str);
+    DUMP_BUFFER_HEX_DEBUG(recv_key, KEY_SIZE);
+    LOG(LOG_DEBUG, "Recv IV (%s):", other_iv_str);
+    DUMP_BUFFER_HEX_DEBUG(recv_iv_static, IV_SIZE);
+    LOG(LOG_DEBUG, "Generated keys END --------");
+
+    free(shared_secret);
 }
 
 int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
@@ -432,8 +448,9 @@ int SecureSocketWrapper::handshake(){
     if (handleServerHello(shm) != 0){
         LOG(LOG_ERR, "Error handling ServerHello!");
         return 1;
+    } else{
+        return 0;
     }
-    return sendClientVerify();
 }
 
 bool SecureSocketWrapper::setOtherCert(X509* other_cert){

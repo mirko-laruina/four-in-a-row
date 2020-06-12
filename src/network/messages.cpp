@@ -213,6 +213,7 @@ msglen_t GameStartMessage::write(char *buffer){
     size_t strsize = writeUsername(username, &buffer[1+SERIALIZED_SOCKADDR_IN_LEN]);
     return 1+SERIALIZED_SOCKADDR_IN_LEN+strsize;
 }
+
 msglen_t GameStartMessage::read(char *buffer, msglen_t len){
     if (len < 1 + SERIALIZED_SOCKADDR_IN_LEN + MIN_USERNAME_LENGTH+1)
         return 1;
@@ -223,22 +224,35 @@ msglen_t GameStartMessage::read(char *buffer, msglen_t len){
 }
 
 msglen_t SecureMessage::write(char* buffer){
-    buffer[0] = (char) SECURE_MESSAGE;
-    memcpy(&buffer[1], ct, size()-1-16);
-    memcpy(&buffer[size()-16], tag, 16);
-    return size();
+    int i = 0;
+
+    buffer[i] = (char) SECURE_MESSAGE;
+    i++;
+
+    memcpy(&buffer[i], ct, ct_size);
+    i += ct_size;
+
+    memcpy(&buffer[i], tag, TAG_SIZE);
+    i += TAG_SIZE;
+
+    return i;
 }
 
 msglen_t SecureMessage::read(char* buffer, msglen_t len){
-    setSize(len);
-    ct = (char*) malloc(len-1-16);
-    tag = (char*) malloc(16);
-    if(!ct){
+    ct_size = len-1-TAG_SIZE;
+    ct = (char*) malloc(ct_size);
+    tag = (char*) malloc(TAG_SIZE);
+    if(!ct || !tag){
         LOG(LOG_WARN, "Malloc failed for message of length %d", len);
         return -1;
     }
-    memcpy(ct, buffer+1, len-1-16);
-    memcpy(tag, buffer+len-16, 16);
+
+    int i = 1;
+
+    memcpy(ct, &buffer[i], ct_size);
+    i += ct_size;
+    memcpy(tag, &buffer[i], TAG_SIZE);
+    //TODO handle too long messages (malformed)
     return 0;
 }
 
@@ -267,9 +281,9 @@ msglen_t ClientHelloMessage::read(char* buffer, msglen_t len){
     memcpy(&nonce, &buffer[i], sizeof(nonce));
     i += sizeof(nonce);
     my_id = readUsername(&buffer[i], len-i);
-    i += my_id.size()+1;
+    i += my_id.size() + 1;
     other_id = readUsername(&buffer[i], len-i);
-    i += other_id.size()+1;
+    i += other_id.size() + 1;
     int ret = buf2pkey(&buffer[i], len-i, &eph_key);
     return ret > 0 ? 0 : 1;
 }
@@ -307,9 +321,9 @@ msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
     memcpy(&nonce, &buffer[i], sizeof(nonce));
     i += sizeof(nonce);
     my_id = readUsername(&buffer[i], len-i);
-    i += my_id.size()+1;
+    i += my_id.size() + 1;
     other_id = readUsername(&buffer[i], len-i);
-    i += other_id.size()+1;
+    i += other_id.size() + 1;
     ds = (char*) malloc(DS_SIZE);
     memcpy(ds, &buffer[i], DS_SIZE);
     i += DS_SIZE;

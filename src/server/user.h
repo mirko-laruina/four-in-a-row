@@ -129,7 +129,11 @@ public:
     /**
      * Sets the current state of the user
      */
-    void setState(UserState state){this->state=state;}
+    void setState(UserState state){
+        LOG(LOG_DEBUG, "User %s (%d) is now in state %d", 
+                username.c_str(), sw->getDescriptor(), (int)state); 
+        this->state=state;
+    }
 
     /**
      * Returns the username of the opponent
