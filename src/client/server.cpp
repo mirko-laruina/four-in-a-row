@@ -21,7 +21,7 @@ int Server::registerToServer(string username){
     if (sw->connectServer(host) != 0)
         return 1;
 
-    if (sw->handshake() != 0){
+    if (sw->handshakeClient() != 0){
         return 1;
     }
 

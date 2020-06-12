@@ -25,7 +25,7 @@ int playWithPlayer(int turn, SecureSocketWrapper *sw);
 /**
  * Starts a server on the given port waiting for peers to connect.
  */
-SecureSocketWrapper* waitForPeer(int port, X509* cert, EVP_PKEY* key, X509_STORE* store);
+SecureSocketWrapper* waitForPeer(int port, SecureHost peer, X509* cert, EVP_PKEY* key, X509_STORE* store);
 
 /**
  * Connects to the server of another peer.

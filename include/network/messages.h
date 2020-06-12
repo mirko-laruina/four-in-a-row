@@ -84,7 +84,9 @@ enum MessageType
     CHALLENGE_FWD,
     CHALLENGE_RESP,
     GAME_START,
-    GAME_CANCEL
+    GAME_CANCEL,
+    CERT_REQ,
+    CERTIFICATE,
 };
 
 /**
@@ -110,11 +112,6 @@ public:
     virtual msglen_t read(char *buffer, msglen_t len) = 0;
 
     /** 
-     * Get required buffer size
-     */
-    virtual msglen_t size() = 0;
-
-    /** 
      * Get message name (for debug purposes)
      */
     virtual string getName() = 0;
@@ -133,8 +130,6 @@ public:
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
-
-    msglen_t size() { return 1; }
 
     string getName() { return "StartGame"; }
 
@@ -156,8 +151,6 @@ public:
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
-
-    msglen_t size() { return 2; }
 
     string getName() { return "Move"; }
 
@@ -181,8 +174,6 @@ public:
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
-
-    msglen_t size() { return usernameSize(username) + 1; }
 
     string getName() { return "Register"; }
 
@@ -208,8 +199,6 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return usernameSize(username) + 1; }
-
     string getName() { return "Challenge"; }
 
     string getUsername() { return username; }
@@ -228,8 +217,6 @@ public:
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
-
-    msglen_t size() { return 1; }
 
     string getName() { return "Game End"; }
 
@@ -251,8 +238,6 @@ public:
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
-
-    msglen_t size() { return usernameSize(usernames) + 1; }
 
     string getName() { return "User list"; }
 
@@ -277,8 +262,6 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return sizeof(offset) + 1; }
-
     string getName() { return "Users list request"; }
 
     uint32_t getOffset() { return offset; }
@@ -301,8 +284,6 @@ public:
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
-
-    msglen_t size() { return usernameSize(username) + 1; }
 
     string getName() { return "Challenge forward"; }
 
@@ -330,8 +311,6 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return usernameSize(username) + sizeof(response) + sizeof(listen_port) + 1; }
-
     string getName() { return "Challenge response"; }
 
     string getUsername() { return username; }
@@ -358,8 +337,6 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return usernameSize(username) + 1; }
-
     string getName() { return "Game cancel"; }
 
     string getUsername() { return username; }
@@ -379,21 +356,19 @@ private:
 
 public:
     GameStartMessage() {}
-    GameStartMessage(string username, struct sockaddr_in addr)
-        : username(username), addr(addr), cert(NULL) {} //TODO cert
+    GameStartMessage(string username, struct sockaddr_in addr, X509* opp_cert)
+        : username(username), addr(addr), cert(opp_cert) {} //TODO cert
     ~GameStartMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
-
-    msglen_t size() { return usernameSize(username) + SERIALIZED_SOCKADDR_IN_LEN + 1; }
 
     string getName() { return "Game start"; }
 
     string getUsername() { return username; }
     struct sockaddr_in getAddr() { return addr; }
     SecureHost getHost() { return SecureHost(addr, cert); }
-
+    X509*      getCert() { return cert; }
     MessageType getType() { return GAME_START; }
 };
 
@@ -410,9 +385,10 @@ public:
     ~SecureMessage(){ if (ct != NULL) free(ct); if (tag != NULL) free(tag); }
 
     MessageType getType() { return SECURE_MESSAGE; }
-    msglen_t size() { return 1 + TAG_SIZE + ct_size; }
-    void setCtSize(msglen_t s) { ct_size = s; }
     string getName() { return "Secure message"; }
+
+    void setCtSize(msglen_t s) { ct_size = s; }
+    size_t getCtSize() { return ct_size; }
     char* getCt() { return ct; }
     char* getTag() { return tag; }
 
@@ -434,8 +410,8 @@ public:
         : eph_key(eph_key), nonce(nonce), my_id(my_id), other_id(other_id) {}
 
     MessageType getType() {return CLIENT_HELLO; }
-    msglen_t size() { return 1 + sizeof(nonce_t) + KEY_BIO_SIZE + usernameSize(my_id) + usernameSize(other_id); }
     string getName() { return "Client Hello message"; }
+
     nonce_t getNonce() { return nonce; }
     EVP_PKEY* getEphKey() { return eph_key; }
     void setEphKey(EVP_PKEY* eph_key) { this->eph_key=eph_key; }
@@ -457,8 +433,8 @@ public:
     ~ClientVerifyMessage();
 
     MessageType getType() {return CLIENT_VERIFY; }
-    msglen_t size() { return 1 + DS_SIZE; }
     string getName() { return "Client Verify message"; }
+
     char* getDs() { return ds; }
 
     msglen_t write(char* buffer);
@@ -481,14 +457,41 @@ public:
     ~ServerHelloMessage();
 
     MessageType getType() {return SERVER_HELLO; }
-    msglen_t size() { return 1 + sizeof(nonce_t) + KEY_BIO_SIZE + usernameSize(my_id) + usernameSize(other_id) + DS_SIZE; }
     string getName() { return "Server Hello message"; }
+
     nonce_t getNonce() { return nonce; }
     EVP_PKEY* getEphKey() { return eph_key; }
     void setEphKey(EVP_PKEY* eph_key) { this->eph_key=eph_key; }
     string getMyId() { return my_id; }
     string getOtherId() { return other_id; }
     char* getDs() { return ds; }
+
+    msglen_t write(char* buffer);
+    msglen_t read(char* buffer, msglen_t len);
+};
+
+class CertificateRequestMessage: public Message
+{
+public:
+    CertificateRequestMessage(){}
+
+    MessageType getType() {return CERT_REQ; }
+    string getName() { return "Certificate Request message"; }
+
+    msglen_t write(char* buffer);
+    msglen_t read(char* buffer, msglen_t len);
+};
+
+class CertificateMessage: public Message
+{
+private:
+    X509* cert;
+public:
+    CertificateMessage(){}
+    CertificateMessage(X509* cert) : cert(cert) {}
+
+    MessageType getType() {return CERTIFICATE; }
+    string getName() { return "Certificate message"; }
 
     msglen_t write(char* buffer);
     msglen_t read(char* buffer, msglen_t len);

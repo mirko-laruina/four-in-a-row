@@ -4,23 +4,23 @@
 
 using namespace std;
 
-static unsigned char aad[] = "LeChuck";
-static unsigned char plaintext[] = "How much wood would a woodchuck chuck if a woodchuck could chuck wood?";
-static unsigned char long_plaintext[] = "M1 A->B: \"How much wood would a woodchuck chuck if a woodchuck could chuck wood?\"\n M2A B->A: \"A woodchuck would chuck as much wood as a woodchuck could chuck if a woodchuck could chuck wood.\"\n OR        \"So much wood would a woodchuck chuck, if a woodchuck could chuck wood!\"\n OR        \"He would chuck, he would, as much as he could, and chuck as much wood as a woodchuck would if a woodchuck could chuck wood.\"";
-static unsigned char key[128] = "Guybrush Threepwood";
-static unsigned char iv[256];
+static char aad[] = "LeChuck";
+static char plaintext[] = "How much wood would a woodchuck chuck if a woodchuck could chuck wood?";
+static char long_plaintext[] = "M1 A->B: \"How much wood would a woodchuck chuck if a woodchuck could chuck wood?\"\n M2A B->A: \"A woodchuck would chuck as much wood as a woodchuck could chuck if a woodchuck could chuck wood.\"\n OR        \"So much wood would a woodchuck chuck, if a woodchuck could chuck wood!\"\n OR        \"He would chuck, he would, as much as he could, and chuck as much wood as a woodchuck would if a woodchuck could chuck wood.\"";
+static char key[128] = "Guybrush Threepwood";
+static char iv[256];
 
 static char certfile[] = "Your Organisation CA_cert.pem";
 static char crlfile[] = "Your Organisation CA_crl.pem";
 
 int main(){
-    unsigned char ct[1024], tag[16], pt[1024];
+    char ct[1024], tag[16], pt[1024];
     int ret;
 
     // Single block encryption/decryption
     
-    ret = aes_gcm_encrypt(plaintext, strlen((char*)plaintext)+1,
-                          aad, strlen((char*)aad)+1,
+    ret = aes_gcm_encrypt(plaintext, strlen(plaintext)+1,
+                          aad, strlen(aad)+1,
                           key, iv, 
                           ct, tag        
     );
@@ -31,7 +31,7 @@ int main(){
     }
 
     ret = aes_gcm_decrypt(ct, ret,
-                          aad, strlen((char*)aad)+1,
+                          aad, strlen(aad)+1,
                           key,
                           iv,
                           pt,
@@ -44,10 +44,10 @@ int main(){
         return 1;
     }
 
-    strncpy((char*)tag, "Tag is wrong   ", 16);
+    strncpy(tag, "Tag is wrong   ", 16);
 
     ret = aes_gcm_decrypt(ct, ret,
-                          aad, strlen((char*)aad)+1,
+                          aad, strlen(aad)+1,
                           key,
                           iv,
                           pt,
@@ -64,15 +64,15 @@ int main(){
 
     // printf((char*)pt);
 
-    if (strcmp((char*)plaintext, (char*)pt) != 0){
+    if (strcmp(plaintext, pt) != 0){
         printf("AES_GCM decryption gave a wrong result");
         return 1;
     }
 
     // Multiple block encryption/decryption
 
-    ret = aes_gcm_encrypt(long_plaintext, strlen((char*)long_plaintext)+1,
-                          aad, strlen((char*)aad)+1,
+    ret = aes_gcm_encrypt(long_plaintext, strlen(long_plaintext)+1,
+                          aad, strlen(aad)+1,
                           key, iv, 
                           ct, tag        
     );
@@ -83,7 +83,7 @@ int main(){
     }
 
     ret = aes_gcm_decrypt(ct, ret,
-                          aad, strlen((char*)aad)+1,
+                          aad, strlen(aad)+1,
                           key,
                           iv,
                           pt,
@@ -98,7 +98,7 @@ int main(){
 
     // printf((char*)pt);
 
-    if (strcmp((char*)long_plaintext, (char*)pt) != 0){
+    if (strcmp(long_plaintext, pt) != 0){
         printf("AES_GCM decryption gave a wrong result\n");
         return 1;
     }
@@ -119,7 +119,7 @@ int main(){
     }
 
     // ECDH
-    unsigned char secretA[4096], secretB[4096];
+    char secretA[4096], secretB[4096];
     int lenA, lenB;
 
     lenA = dhke(keyA, keyB, secretA);
@@ -170,16 +170,16 @@ int main(){
     }
 
     //hmac
-    unsigned char hmac1[1024], hmac2[1024];
-    ret = hmac((char*)plaintext, strlen((char*)plaintext)+1,
-                (char*)key, strlen((char*)key)+1,
+    char hmac1[1024], hmac2[1024];
+    ret = hmac(plaintext, strlen(plaintext)+1,
+                key, strlen(key)+1,
                 hmac1);
     if (ret <= 0){
         printf("hmac ERROR\n");
         return 1;
     }
-    ret = hmac((char*)plaintext, strlen((char*)plaintext)+1,
-                (char*)key, strlen((char*)key)+1,
+    ret = hmac(plaintext, strlen(plaintext)+1,
+                key, strlen(key)+1,
                 hmac2);
     if (ret <= 0){
         printf("hmac ERROR\n");
@@ -191,16 +191,16 @@ int main(){
     }
 
     // hkdf
-    unsigned char key1[256], key2[256];
-    hkdf(key, strlen((char*)key)+1, nonceA, nonceB,
+    char key1[256], key2[256];
+    hkdf(key, strlen(key)+1, nonceA, nonceB,
         "elaine", key1, 256);
-    hkdf(key, strlen((char*)key)+1, nonceA, nonceB,
+    hkdf(key, strlen(key)+1, nonceA, nonceB,
         "elaine", key2, 256);
     if (memcmp(key1, key2, 256) != 0){
         printf("HKDF produced different keys!\n");
         return 1;
     }
-    hkdf(key, strlen((char*)key)+1, nonceA, nonceB,
+    hkdf(key, strlen(key)+1, nonceA, nonceB,
         "lechuck", key2, 256);
     if (memcmp(key1, key2, 256) == 0){
         printf("HKDF produced same key with different paramenters!\n");
@@ -209,22 +209,22 @@ int main(){
 
     // dsa
     EVP_PKEY* mirko_key = load_key_file("mirko_key.pem", NULL);
-    unsigned char signature[1024];
-    int sign_len = dsa_sign((unsigned char*)plaintext, 
-            strlen((char*)plaintext)+1, 
+    char signature[1024];
+    int sign_len = dsa_sign(plaintext, 
+            strlen(plaintext)+1, 
             signature, mirko_key
     );
     printf("Signature length: %d", sign_len);
-    bool vfy = dsa_verify((unsigned char*)plaintext, 
-            strlen((char*)plaintext)+1, 
+    bool vfy = dsa_verify(plaintext, 
+            strlen(plaintext)+1, 
             signature, sign_len,
             X509_get_pubkey(mirko_cert));
     if (!vfy){
         printf("DSA verify failed!\n");
         return 1;
     }
-    vfy = dsa_verify((unsigned char*)plaintext, 
-            strlen((char*)plaintext)+1, 
+    vfy = dsa_verify(plaintext, 
+            strlen(plaintext)+1, 
             signature, sign_len,
             X509_get_pubkey(up_cert));
     if (vfy){

@@ -66,6 +66,12 @@ Message* readMessage(char *buffer, msglen_t len){
         case GAME_CANCEL:
             m = new GameCancelMessage;
             break;
+        case CERT_REQ:
+            m = new CertificateRequestMessage;
+            break;
+        case CERTIFICATE:
+            m = new CertificateMessage;
+            break;
         default:
             m = NULL;
             LOG(LOG_ERR, "Unrecognized message type %d", buffer[0]);
@@ -208,18 +214,32 @@ msglen_t GameCancelMessage::read(char *buffer, msglen_t len){
 }
 
 msglen_t GameStartMessage::write(char *buffer){
-    buffer[0] = (char) GAME_START;
-    sockaddr_in_to_buffer(addr, &buffer[1]);
-    size_t strsize = writeUsername(username, &buffer[1+SERIALIZED_SOCKADDR_IN_LEN]);
-    return 1+SERIALIZED_SOCKADDR_IN_LEN+strsize;
+    int i = 0;
+    buffer[i] = (char) GAME_START;
+    i++;
+
+    sockaddr_in_to_buffer(addr, &buffer[i]);
+    i += SERIALIZED_SOCKADDR_IN_LEN;
+    size_t strsize = writeUsername(username, &buffer[i]);
+    i += strsize;
+    size_t available_len = MAX_MSG_SIZE - i;
+    size_t certsize = cert2buf(&cert, &buffer[i], available_len);    
+    i += certsize;
+    return i;
 }
 
 msglen_t GameStartMessage::read(char *buffer, msglen_t len){
     if (len < 1 + SERIALIZED_SOCKADDR_IN_LEN + MIN_USERNAME_LENGTH+1)
         return 1;
+    int offset = 1;
     addr = buffer_to_sockaddr_in(&buffer[1]);
-    username = readUsername(&buffer[1+SERIALIZED_SOCKADDR_IN_LEN], 
-                            len-1-SERIALIZED_SOCKADDR_IN_LEN);
+    offset += SERIALIZED_SOCKADDR_IN_LEN;
+    username = readUsername(&buffer[offset], len-offset);
+    offset += username.size() + 1;
+    int ret = buf2cert(&buffer[offset], len - offset, &cert);
+    if (ret < 0){
+        return 1;
+    }
     return 0;
 }
 
@@ -267,7 +287,7 @@ msglen_t ClientHelloMessage::write(char* buffer){
     i+= strsize;
     strsize = writeUsername(other_id, &buffer[i]);
     i+= strsize;
-    int ret = pkey2buf(&eph_key, &buffer[i], size()-i);
+    int ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i);
     if (ret > 0){
         i += ret;
         return i;
@@ -307,7 +327,7 @@ msglen_t ServerHelloMessage::write(char* buffer){
     i+= strsize;
     memcpy(&buffer[i], ds, DS_SIZE);
     i += DS_SIZE;
-    int ret = pkey2buf(&eph_key, &buffer[i], size()-i);
+    int ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i);
     if (ret > 0){
         i += ret;
         return i;
@@ -352,4 +372,29 @@ msglen_t ClientVerifyMessage::read(char* buffer, msglen_t len){
     memcpy(ds, &buffer[i], DS_SIZE);
     i += DS_SIZE;
     return 0;
+}
+
+msglen_t CertificateRequestMessage::write(char* buffer){
+    buffer[0] = (MessageType) CERT_REQ;
+    return 1;
+}
+
+msglen_t CertificateRequestMessage::read(char* buffer, msglen_t len){
+    return 0;
+}
+
+msglen_t CertificateMessage::write(char* buffer){
+    int i = 0;
+    buffer[i] = (MessageType) CERTIFICATE;
+    i++;
+    int ret = cert2buf(&cert, buffer, MAX_MSG_SIZE-1);
+    if (ret <= 0)
+        return -1;
+    i += ret;
+    return i;
+}
+
+msglen_t CertificateMessage::read(char* buffer, msglen_t len){
+    int ret = buf2cert(buffer, len, &cert);
+    return ret > 0 ? 0 : 1;
 }

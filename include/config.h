@@ -5,7 +5,7 @@
  * 
  * TODO: it is random, calculate it
  */
-#define MAX_MSG_SIZE 1024
+#define MAX_MSG_SIZE 8192
 
 
 

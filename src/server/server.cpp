@@ -185,11 +185,26 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
 
         struct sockaddr_in opp_addr = opponent->getSocketWrapper()      
                                         ->getConnectedHost().getAddress();
-        GameStartMessage msg_to_u(opponent->getUsername(), opp_addr);
+        opp_addr.sin_port = 0;
+        cert_map_t::iterator opp_pair = cert_map.find(opponent->getUsername());
+        if(opp_pair == cert_map.end()) {
+            doubleUnlock(u, opponent);
+            user_list.yield(opponent);
+            return false;
+        }
+        GameStartMessage msg_to_u(opponent->getUsername(), opp_addr, opp_pair->second);
+
         struct sockaddr_in u_addr = u->getSocketWrapper()      
                                         ->getConnectedHost().getAddress();
         u_addr.sin_port = htons(msg->getListenPort());
-        GameStartMessage msg_to_opp(u->getUsername(), u_addr);
+        cert_map_t::iterator u_pair = cert_map.find(u->getUsername());
+        if(u_pair == cert_map.end()) {
+            doubleUnlock(u, opponent);
+            user_list.yield(opponent);
+            return false;
+        }
+        GameStartMessage msg_to_opp(u->getUsername(), u_addr, u_pair->second);
+
         int res_u = u->getSocketWrapper()->sendMsg(&msg_to_u);
         int res_opp = opponent->getSocketWrapper()->sendMsg(&msg_to_opp);
 
@@ -261,6 +276,19 @@ bool handleClientVerifyMessage(User* u, ClientVerifyMessage* cvm){
         return true;
     } else {
         LOG(LOG_ERR, "Client Verify failed!");
+        u->setState(DISCONNECTED);
+        return false;
+    }
+}
+
+bool handleCertificateRequestMessage(User* u, CertificateRequestMessage* crm){
+    CertificateMessage cm(cert);
+    int ret = u->getSocketWrapper()->sendMsg(&cm);
+    if(ret == 0){
+        return true;
+    } else {
+        LOG(LOG_ERR, "Error sending certificate to client!");
+        u->setState(DISCONNECTED);
         return false;
     }
 }
@@ -286,6 +314,9 @@ bool handleMessage(User* user, Message* raw_msg){
                     res = handleClientVerifyMessage(user,
                         dynamic_cast<ClientVerifyMessage*>(msg));
                     break;
+                case CERT_REQ:
+                    res = handleCertificateRequestMessage(user,
+                        dynamic_cast<CertificateRequestMessage*>(msg));
                 // TODO: handle cert request
                 default:
                     logUnexpectedMessage(user, msg);

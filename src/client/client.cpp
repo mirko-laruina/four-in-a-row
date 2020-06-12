@@ -55,18 +55,25 @@ struct ConnectionMode promptChooseConnection(){
         cout<<"> "<<flush;
         cin.getline(in_buffer, sizeof(in_buffer));
         Args args(in_buffer);
-        if (args.argc == 2 && strcmp(args.argv[0], "peer") == 0){
-            return ConnectionMode(WAIT_FOR_PEER, atoi(args.argv[1]));
+        if (args.argc == 3 && strcmp(args.argv[0], "peer") == 0){
+            X509* cert = load_cert_file(args.argv[2]);
+            char dummy_ip[] = "127.0.0.1";
+            return ConnectionMode(WAIT_FOR_PEER, dummy_ip, 
+                                0, cert, atoi(args.argv[1]));
+
         } else if (args.argc == 4 && strcmp(args.argv[0], "peer") == 0){
             X509* cert = load_cert_file(args.argv[3]);
             return ConnectionMode(CONNECT_TO_PEER, args.argv[1], 
-                                        atoi(args.argv[2]), cert);
+                                        atoi(args.argv[2]), cert, 0);
+                                        
         } else if (args.argc == 4 && strcmp(args.argv[0], "server") == 0){
             X509* cert = load_cert_file(args.argv[3]);
             return ConnectionMode(CONNECT_TO_SERVER, args.argv[1], 
-                                        atoi(args.argv[2]), cert);
+                                        atoi(args.argv[2]), cert, 0);
+                                        
         } else if (args.argc == 1 && strcmp(args.argv[0], "offline") == 0){
             return ConnectionMode(SINGLE_PLAYER, 0);
+            
         } else if (args.argc == 0){
             cout << "Bye" << endl;
             exit(0);
@@ -106,7 +113,7 @@ int main(int argc, char** argv){
     int ret;
     switch(ucc.connection_type){
         case WAIT_FOR_PEER:
-            sw = waitForPeer(ucc.listen_port, cert, key, store);
+            sw = waitForPeer(ucc.listen_port, ucc.host, cert, key, store);
             if (sw != NULL)
                 ret = playWithPlayer(MY_TURN, sw);
             else 

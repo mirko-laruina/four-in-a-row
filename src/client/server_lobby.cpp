@@ -153,7 +153,7 @@ ConnectionMode serverLobby(SecureHost host, X509* cert, EVP_PKEY* key, X509_STOR
                                     break;
                                 case 0:
                                     cout<<"Starting game..."<<endl;
-                                    return ConnectionMode(WAIT_FOR_PEER, listen_port);
+                                    return ConnectionMode(WAIT_FOR_PEER, peer_host, listen_port);
                                 default:
                                     cout<<"Error"<<endl; 
                                     return ConnectionMode(EXIT, 1);
@@ -183,7 +183,7 @@ ConnectionMode serverLobby(SecureHost host, X509* cert, EVP_PKEY* key, X509_STOR
                             return ConnectionMode(EXIT, 1);
                         case -1: // challenge accepted
                             cout<<"Starting game..."<<endl;
-                            return ConnectionMode(CONNECT_TO_PEER, peer_host);
+                            return ConnectionMode(CONNECT_TO_PEER, peer_host, 0);
                         case -2:
                             cout<<"Bye"<<endl;
                             return ConnectionMode(EXIT, 0);

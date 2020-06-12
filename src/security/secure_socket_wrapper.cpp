@@ -54,22 +54,21 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
         return NULL;
     }
 
-    msglen_t sm_len = sm->size();
-    msglen_t pt_len = sm->size() - TAG_SIZE - 1;
-    LOG(LOG_DEBUG, "Received SecureMessage of size %d", sm_len);
+    msglen_t pt_len = sm->getCtSize();
+    LOG(LOG_DEBUG, "Received SecureMessage of size %d", pt_len);
 
     LOG(LOG_DEBUG, "Payload");
     DUMP_BUFFER_HEX_DEBUG(sm->getCt(), pt_len);
     LOG(LOG_DEBUG, "TAG");
     DUMP_BUFFER_HEX_DEBUG(sm->getTag(), TAG_SIZE);
 
-    unsigned char *pt = (unsigned char *)malloc(pt_len);
+    char *buffer_pt = (char*) malloc(pt_len);
 
     updateRecvIV();
 
-    int ret = aes_gcm_decrypt((unsigned char *)sm->getCt(), pt_len, NULL, 0,
-                              (unsigned char *)recv_key, (unsigned char *) recv_iv,
-                              pt, (unsigned char *)sm->getTag());
+    int ret = aes_gcm_decrypt(sm->getCt(), pt_len, NULL, 0,
+                              recv_key, recv_iv,
+                              buffer_pt, sm->getTag());
 
     if (ret <= 0)
     {
@@ -78,16 +77,15 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
     }
 
     LOG(LOG_DEBUG, "Decrypted message (%d):", ret);
-    DUMP_BUFFER_HEX_DEBUG((char*) pt, ret);
+    DUMP_BUFFER_HEX_DEBUG(buffer_pt, ret);
 
-    Message *m = readMessage((char *)pt, pt_len);
+    Message *m = readMessage(buffer_pt, pt_len);
 
     if (m != NULL){
         LOG(LOG_DEBUG, "Decrypted message of type %s", m->getName().c_str());
     } else{
         LOG(LOG_DEBUG, "Malformed message");
     }
-    free(pt);
     return m;
 }
 
@@ -96,24 +94,24 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
     if (!peer_authenticated)
         return NULL;
 
-    msglen_t m_len = m->size();
-    LOG(LOG_DEBUG, "Encrypting message of size %d", m_len);
-    char *buffer = (char *)malloc(m_len);
-    int buf_len = m->write(buffer);
+    char buffer_pt[MAX_MSG_SIZE];
+    int buf_len = m->write(buffer_pt);
 
-    unsigned char *ct = (unsigned char *)malloc(buf_len);
-    unsigned char *tag = (unsigned char *)malloc(TAG_SIZE);
+    char* buffer_ct = (char*) malloc(MAX_MSG_SIZE);
+    char* buffer_tag = (char*) malloc(TAG_SIZE);
+
+    LOG(LOG_DEBUG, "Encrypting message of size %d", buf_len);
 
     updateSendIV();
 
-    int ret = aes_gcm_encrypt((unsigned char *)buffer, buf_len, NULL, 0,
-                              (unsigned char *)send_key, (unsigned char *) send_iv,
-                              ct, tag);
+    int ret = aes_gcm_encrypt(buffer_pt, buf_len, NULL, 0,
+                              send_key, send_iv,
+                              buffer_ct, buffer_tag);
 
     LOG(LOG_DEBUG, "Message encrypted %d bytes with iv: ", ret);
     DUMP_BUFFER_HEX_DEBUG(send_iv, IV_SIZE);
     LOG(LOG_DEBUG, "and tag: ");
-    DUMP_BUFFER_HEX_DEBUG((char*)tag, TAG_SIZE);
+    DUMP_BUFFER_HEX_DEBUG((char*)buffer_tag, TAG_SIZE);
     LOG(LOG_DEBUG, "SecureMessage of size %d", buf_len + 1 + TAG_SIZE);
 
     if (ret <= 0)
@@ -122,7 +120,7 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
         return NULL;
     }
 
-    SecureMessage *sm = new SecureMessage((char*) ct, ret, (char*) tag);
+    SecureMessage *sm = new SecureMessage(buffer_ct, ret, buffer_tag);
 
     return sm;
 }
@@ -265,7 +263,7 @@ int SecureSocketWrapper::sendClientVerify(){
 }
 
 void SecureSocketWrapper::generateKeys(const char* role){
-    unsigned char *shared_secret = NULL;
+    char *shared_secret = NULL;
 
     int size = dhke(my_eph_key, other_eph_key, &shared_secret);
 
@@ -286,10 +284,10 @@ void SecureSocketWrapper::generateKeys(const char* role){
     strcat(my_iv_str, role);
     strcat(other_iv_str, other_role);
 
-    hkdf(shared_secret, size, sv_nonce, cl_nonce, my_key_str, (unsigned char*) send_key, KEY_SIZE);
-    hkdf(shared_secret, size, sv_nonce, cl_nonce, other_key_str, (unsigned char*) recv_key, KEY_SIZE);
-    hkdf(shared_secret, size, sv_nonce, cl_nonce, my_iv_str, (unsigned char*) send_iv_static, IV_SIZE);
-    hkdf(shared_secret, size, sv_nonce, cl_nonce, other_iv_str, (unsigned char*) recv_iv_static, IV_SIZE);
+    hkdf(shared_secret, size, sv_nonce, cl_nonce, my_key_str, send_key, KEY_SIZE);
+    hkdf(shared_secret, size, sv_nonce, cl_nonce, other_key_str, recv_key, KEY_SIZE);
+    hkdf(shared_secret, size, sv_nonce, cl_nonce, my_iv_str, send_iv_static, IV_SIZE);
+    hkdf(shared_secret, size, sv_nonce, cl_nonce, other_iv_str, recv_iv_static, IV_SIZE);
 
     LOG(LOG_DEBUG, "HKDF parameters BEGIN --------");
     LOG(LOG_DEBUG, "Shared secret:");
@@ -312,7 +310,6 @@ void SecureSocketWrapper::generateKeys(const char* role){
 }
 
 int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
-    size_t max_size = getLenMsgToSign();
     int i = 0;
     size_t size;
     string A;
@@ -354,15 +351,15 @@ int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
     memcpy(&msg[i], &sv_nonce, size);
     i += size;
 
-    size = KEY_BIO_SIZE;
-    if (pkey2buf(&A_eph_key, &msg[i], max_size-i) <= 0){
+    size = pkey2buf(&A_eph_key, &msg[i], MAX_MSG_TO_SIGN_SIZE-i);
+    if (size <= 0){
         LOG(LOG_ERR, "Error copying key to buffer");
         return 0;
     }
     i += size;
 
-    size = KEY_BIO_SIZE;
-    if (pkey2buf(&B_eph_key, &msg[i], max_size-i) <= 0){
+    size = pkey2buf(&B_eph_key, &msg[i], MAX_MSG_TO_SIGN_SIZE-i);
+    if (size <= 0){
         LOG(LOG_ERR, "Error copying key to buffer");
         return 0;
     }
@@ -371,46 +368,33 @@ int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
     return i;
 }
 
-size_t SecureSocketWrapper::getLenMsgToSign(){
-    return my_id.size() + other_id.size() 
-        + sizeof(cl_nonce) + sizeof(sv_nonce)
-        + KEY_BIO_SIZE + KEY_BIO_SIZE;
-}
-
 char* SecureSocketWrapper::makeSignature(const char* role){
     char* ds = (char*) malloc(DS_SIZE);
-    size_t msglen = getLenMsgToSign();
-    char* msg = (char*) malloc (msglen);
 
-    if (buildMsgToSign(role, msg) <= 0){
+    size_t msglen = buildMsgToSign(role, msg_to_sign_buf);
+    if (msglen <= 0){
         LOG(LOG_ERR, "Error building message to sign!");
         return NULL;
     }
 
-    if (dsa_sign((unsigned char*) msg, msglen, (unsigned char*) ds, my_priv_key) <= 0){
-        free(msg);
+    if (dsa_sign(msg_to_sign_buf, msglen, ds, my_priv_key) <= 0){
         return NULL;
     }
 
-    free(msg);
-    return ds;
-    
+    return ds;    
 }
 
 bool SecureSocketWrapper::checkSignature(char* ds, const char* role){
-    size_t msglen = getLenMsgToSign();
-    char* msg = (char*) malloc (msglen);
+    size_t msglen = buildMsgToSign(role, msg_to_sign_buf);
 
-    if (buildMsgToSign(role, msg) <= 0){
+    if (msglen <= 0){
         LOG(LOG_ERR, "Error building message to sign!");
-        return NULL;
+        return false;
     }
 
-    bool ret = dsa_verify((unsigned char*) msg, msglen, 
-            (unsigned char*) ds, DS_SIZE, 
-            X509_get_pubkey(other_cert));
+    bool ret = dsa_verify(msg_to_sign_buf, msglen, ds, DS_SIZE, 
+                          X509_get_pubkey(other_cert));
 
-    free(msg);
     return ret;
 }
 
@@ -433,19 +417,38 @@ void SecureSocketWrapper::updateRecvIV(){
     updateIV(recv_seq_num, recv_iv_static, recv_iv);
 }
 
-int SecureSocketWrapper::handshake(){
+int SecureSocketWrapper::handshakeClient(){
     if(sendClientHello() != 0){
         LOG(LOG_ERR, "ClientHello send failed!");
         return 1;
     }
-
+    LOG(LOG_INFO, "Client Hello sent");
     ServerHelloMessage *shm = dynamic_cast<ServerHelloMessage*>(receiveMsg(SERVER_HELLO));
     if (handleServerHello(shm) != 0){
         LOG(LOG_ERR, "Error handling ServerHello!");
         return 1;
     } else{
+        LOG(LOG_INFO, "Server Hello handled");
         return 0;
     }
+}
+
+int SecureSocketWrapper::handshakeServer(){
+    ClientHelloMessage *chm = dynamic_cast<ClientHelloMessage*>(receiveMsg(CLIENT_HELLO));
+
+    if (handleClientHello(chm) != 0){
+        LOG(LOG_ERR, "Error handling ClientHello!");
+        return 1;
+    }
+
+    ClientVerifyMessage *cvm = dynamic_cast<ClientVerifyMessage*>(receiveMsg(CLIENT_VERIFY));
+
+    if (handleClientVerify(cvm) != 0){
+        LOG(LOG_ERR, "Error handling ClientVerify!");
+        return 1;
+    }
+    
+    return 0;
 }
 
 bool SecureSocketWrapper::setOtherCert(X509* other_cert){

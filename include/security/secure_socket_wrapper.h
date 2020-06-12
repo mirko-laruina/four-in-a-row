@@ -16,8 +16,11 @@
 #include "network/messages.h"
 #include "network/socket_wrapper.h"
 #include "security/crypto.h"
+#include "security/crypto_utils.h"
 #include "security/secure_host.h"
 #include "utils/dump_buffer.h"
+
+#define MAX_MSG_TO_SIGN_SIZE (2*MAX_USERNAME_LENGTH + 2 * sizeof(nonce_t) + 2 * KEY_BIO_MAX_SIZE )
 
 class SecureSocketWrapper
 {
@@ -34,28 +37,30 @@ protected:
     uint64_t recv_seq_num;
     string my_id;
     string other_id;
-    nonce_t sv_nonce; 
-    nonce_t cl_nonce; 
-    EVP_PKEY* my_eph_key;
-    EVP_PKEY* other_eph_key;
-    X509* my_cert;
-    X509* other_cert;
-    X509_STORE* store;
-    EVP_PKEY* my_priv_key;
+    nonce_t sv_nonce;
+    nonce_t cl_nonce;
+    EVP_PKEY *my_eph_key;
+    EVP_PKEY *other_eph_key;
+    X509 *my_cert;
+    X509 *other_cert;
+    X509_STORE *store;
+    EVP_PKEY *my_priv_key;
 
     bool peer_authenticated;
+
+    char msg_to_sign_buf[MAX_MSG_TO_SIGN_SIZE];
 
     /** 
      * Empty constructor to use in child classes.
      */
-    SecureSocketWrapper() {};
+    SecureSocketWrapper(){};
 
-    void generateKeys(const char* role);
+    void generateKeys(const char *role);
     void updateSendIV();
     void updateRecvIV();
 
     /** Internal initialization */
-    void init(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store);
+    void init(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store);
 
     /**
      * @brief Decrypts a Secure Message into a Message
@@ -63,7 +68,7 @@ protected:
      * @param sm             Secure message ptr
      * @return Message*      Read message
      */
-    Message* decryptMsg(SecureMessage* sm);
+    Message *decryptMsg(SecureMessage *sm);
 
     /**
      * @brief Encrypts a Message into a SecureMessage
@@ -71,17 +76,17 @@ protected:
      * @param m                   Message to encrypt
      * @return SecureMessage*     Encrypted SecureMessage
      */
-    SecureMessage* encryptMsg(Message* m);
+    SecureMessage *encryptMsg(Message *m);
 
     /**
      * Make the signature for the handshake protocol
      */
-    char* makeSignature(const char* role);
+    char *makeSignature(const char *role);
 
     /**
      * Checks the signature for the handshake protocol
      */
-    bool checkSignature(char* ds, const char* role);
+    bool checkSignature(char *ds, const char *role);
 
     /**
      * Builds the message to be signed.
@@ -90,29 +95,23 @@ protected:
      * @param msg the buffer to write the message to
      * @returns number of written bytes
      */
-    int buildMsgToSign(const char* role, char* msg);
-
-    /**
-     * Returns the length of the message to be signed.
-     */\
-    size_t getLenMsgToSign();
+    int buildMsgToSign(const char *role, char *msg);
 
 public:
-
     /** 
      * Initialize on a new socket
      */
-    SecureSocketWrapper(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store);
+    SecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store);
 
     /** 
      * Initialize using existing socket
      */
-    SecureSocketWrapper(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store, int sd);
+    SecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store, int sd);
 
     /** 
      * Constructor to generate connection socket wrappers
      */
-    SecureSocketWrapper(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store, SocketWrapper *sw);
+    SecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store, SocketWrapper *sw);
 
     /** 
      * Destructor
@@ -121,7 +120,7 @@ public:
 
     /** 
      * Read any new data from the socket but does not wait for the 
-     * whole message to be ready.
+     * whole message to be ready. This does not decrypt the message!
      * 
      * This API is blocking iff socket was not ready.
      * 
@@ -137,8 +136,7 @@ public:
      * 
      * @returns the received message or null if an error occurred
      */
-    Message* receiveAnyMsg();
-
+    Message *receiveAnyMsg();
 
     /** 
      * Receive a new message of the given type from the socket.
@@ -150,7 +148,7 @@ public:
      * @param type the type to keep
      * @returns the received message or null if an error occurred
      */
-    Message* receiveMsg(MessageType type);
+    Message *receiveMsg(MessageType type);
 
     /** 
      * Receive a new message of any of the given types from the socket.
@@ -163,12 +161,12 @@ public:
      * @param n_types the number of types to keep (array length)
      * @returns the received message or null if an error occurred
      */
-    Message* receiveMsg(MessageType type[], int n_types);
+    Message *receiveMsg(MessageType type[], int n_types);
 
-    Message* handleMsg(Message* msg);
-    int handleClientHello(ClientHelloMessage* chm);
-    int handleServerHello(ServerHelloMessage* shm);
-    int handleClientVerify(ClientVerifyMessage* cvm);
+    Message *handleMsg(Message *msg);
+    int handleClientHello(ClientHelloMessage *chm);
+    int handleServerHello(ServerHelloMessage *shm);
+    int handleClientVerify(ClientVerifyMessage *cvm);
 
     int sendClientHello();
     int sendServerHello();
@@ -183,26 +181,33 @@ public:
     int sendMsg(Message *msg);
 
     /**
-     * @brief Estiblishes a secure connection over the already specified socket
+     * @brief Estiblishes a secure connection over the already specified socket. To be run server-side.
      * 
      * @return int  0 in case of success, something else otherwise
      */
-    int handshake();
+    int handshakeServer();
+
+    /**
+     * @brief Estiblishes a secure connection over the already specified socket. To be run client-side.
+     * 
+     * @return int  0 in case of success, something else otherwise
+     */
+    int handshakeClient();
 
     /**
      * Sets the peer certificate.
      */
-    bool setOtherCert(X509* other_cert);
+    bool setOtherCert(X509 *other_cert);
 
     /** 
      * Returns current socket file descriptor
      */
-    int getDescriptor(){return sw->getDescriptor();};
+    int getDescriptor() { return sw->getDescriptor(); };
 
     /**
      * Closes the socket.
      */
-    void closeSocket(){sw->closeSocket();}
+    void closeSocket() { sw->closeSocket(); }
 
     /**
      * Sets the address of the other host.
@@ -210,14 +215,14 @@ public:
      * This is used when initializing a new SocketWrapper for a newly 
      * accepter connection.
      */
-    void setOtherAddr(struct sockaddr_in addr){sw->setOtherAddr(addr);}
+    void setOtherAddr(struct sockaddr_in addr) { sw->setOtherAddr(addr); }
 
-    sockaddr_in* getOtherAddr() { return sw->getOtherAddr();}
+    sockaddr_in *getOtherAddr() { return sw->getOtherAddr(); }
 
     /**
      * Returns connected host.
      */
-    SecureHost getConnectedHost(){return SecureHost(*getOtherAddr(),other_cert);}
+    SecureHost getConnectedHost() { return SecureHost(*getOtherAddr(), other_cert); }
 };
 
 /**
@@ -229,22 +234,22 @@ class ClientSecureSocketWrapper : public SecureSocketWrapper
 {
 private:
     ClientSocketWrapper *csw;
+
 public:
     /** 
      * Initialize a new socket on a random port.
      * 
      * @param port the port you want to bind on 
      */
-    ClientSecureSocketWrapper(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store);
+    ClientSecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store);
 
-     /**
+    /**
      * Connects to a remote server.
      * 
      * @returns 0 in case of success, something else otherwise
      */
-     int connectServer(SecureHost host);
+    int connectServer(SecureHost host);
 
-     
 };
 
 /**
@@ -264,31 +269,31 @@ public:
      * 
      * @param port the port you want to bind on 
      */
-    ServerSecureSocketWrapper(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store);
+    ServerSecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store);
 
     /** 
      * Initialize a new socket at the requested port.
      * 
      * @param port the port you want to bind on 
      */
-    ServerSecureSocketWrapper(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store, int port);
+    ServerSecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store, int port);
 
-     /**
+    /**
      * Accepts any incoming connection and returns the related SocketWrapper.
      */
-     SecureSocketWrapper *acceptClient();
+    SecureSocketWrapper *acceptClient();
 
-     /**
+    /**
      * Accepts any incoming connection and returns the related SocketWrapper.
      * 
      * The certificate is set as the expected certificate of the peer.
      */
-     SecureSocketWrapper *acceptClient(X509* other_cert);
+    SecureSocketWrapper *acceptClient(X509 *other_cert);
 
-     /**
+    /**
      * Returns port the server is listening new connections on.
      */
-     int getPort() { return ssw->getPort(); }
+    int getPort() { return ssw->getPort(); }
 };
 
 #endif

@@ -20,9 +20,8 @@
 #define TAG_SIZE     16  // TODO check
 #define IV_SIZE      12  // TODO check
 #define KEY_SIZE     16  // TODO check
-#define DS_SIZE      256  // TODO check
+#define DS_SIZE      256 // TODO check
 #define ECDH_SIZE    32  // TODO check
-#define KEY_BIO_SIZE 178 // TODO check
 
 typedef uint32_t nonce_t;
 
@@ -61,11 +60,11 @@ typedef uint32_t nonce_t;
  * 
  * @return number of written bytes
  */
-int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
-                    unsigned char *aad, int aad_len,
-                    unsigned char *key, unsigned char *iv,
-                    unsigned char *ciphertext,
-                    unsigned char *tag);
+int aes_gcm_encrypt(char *plaintext, int plaintext_len,
+                    char *aad, int aad_len,
+                    char *key, char *iv,
+                    char *ciphertext,
+                    char *tag);
 
 /**
  * Decrypts using AES in GCM mode
@@ -82,12 +81,12 @@ int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
  * @retval -1               on error
  * @retval n                number of written bytes
  */
-int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
-                    unsigned char *aad, int aad_len,
-                    unsigned char *key,
-                    unsigned char *iv,
-                    unsigned char *plaintext,
-                    unsigned char *tag);
+int aes_gcm_decrypt(char *ciphertext, int ciphertext_len,
+                    char *aad, int aad_len,
+                    char *key,
+                    char *iv,
+                    char *plaintext,
+                    char *tag);
 
 /**
  * @brief Generate a ECDH key
@@ -109,7 +108,7 @@ int get_ecdh_key(EVP_PKEY **key);
  * @param shared_key    output buffer location (unallocated), it will contained the shared key
  * @return int          shared_key length
  */
-int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char **shared_key);
+int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, char **shared_key);
 
 /**
  * @brief Get a random number
@@ -124,7 +123,7 @@ nonce_t get_rand();
  * @param char  buffer to fill
  * @param bytes number of bytes (buffer length)
  */
-void get_rand(unsigned char* buffer, int bytes);
+void get_rand(char* buffer, int bytes);
 
 /**
  * @brief Load a certificate from file
@@ -182,7 +181,7 @@ bool verify_peer_cert(X509_STORE *store, X509 *cert);
  * @return int      size of the HMAC
  */
 int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
-         unsigned char *hmac);
+         char *hmac);
 
 /**
  * @brief Compare two HMAC in a secure way
@@ -193,7 +192,7 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
  * @return true             if they are the same
  * @return false            otherwise
  */
-bool compare_hmac(unsigned char *hmac_expected, unsigned char *hmac_rcv, unsigned int len);
+bool compare_hmac(char *hmac_expected, char *hmac_rcv, unsigned int len);
 
 /**
  * @brief Apply HKDF, takes only one info field
@@ -205,9 +204,9 @@ bool compare_hmac(unsigned char *hmac_expected, unsigned char *hmac_rcv, unsigne
  * @param out               Output buffer (allocated)
  * @param outlen            Output len
  */
-void hkdf_one_info(unsigned char *key, size_t key_len,
-                   unsigned char *info, size_t info_len,
-                   unsigned char *out, size_t outlen);
+void hkdf_one_info(char *key, size_t key_len,
+                   char *info, size_t info_len,
+                   char *out, size_t outlen);
 
 /**
  * @brief Apply HKDF, takes two nonces and a label field
@@ -220,10 +219,10 @@ void hkdf_one_info(unsigned char *key, size_t key_len,
  * @param out               Output buffer (allocated)
  * @param outlen            Output len
  */
-void hkdf(unsigned char *key, size_t key_len,
+void hkdf(char *key, size_t key_len,
           nonce_t nonce1, nonce_t nonce2,
           char *label,
-          unsigned char *out, size_t outlen);
+          char *out, size_t outlen);
 
 /**
  * Signs the given message
@@ -234,7 +233,7 @@ void hkdf(unsigned char *key, size_t key_len,
  * @param prvkey the private key
  * @returns the length of the signature
  */
-int dsa_sign(unsigned char* msg, int msglen, unsigned char* signature,
+int dsa_sign(char* msg, int msglen, char* signature,
              EVP_PKEY *prvkey);
 
 /**
@@ -246,8 +245,8 @@ int dsa_sign(unsigned char* msg, int msglen, unsigned char* signature,
  * @param prvkey the public key
  * @returns true if message is authentic, false otherwise
  */
-bool dsa_verify(unsigned char* msg, int msglen,
-            unsigned char* signature, int sign_len,
+bool dsa_verify(char* msg, int msglen,
+            char* signature, int sign_len,
             EVP_PKEY *pkey);
 
 #endif

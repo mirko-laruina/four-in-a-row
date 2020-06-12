@@ -21,6 +21,8 @@
 
 using namespace std;
 
+#define KEY_BIO_MAX_SIZE 256
+
 /**
  * Writes the key internal byte representation to the given buffer.
  * 
@@ -37,9 +39,30 @@ int pkey2buf(EVP_PKEY **key, char* buf, int buflen);
  * @param buf the buffer
  * @param buflen the buffer length
  * @param key the key 
- * @returns the number of read bytes
+ * @returns 1 in case of success, <=0 otherwise
  */
 int buf2pkey(char* buf, int buflen, EVP_PKEY **key);
+
+/**
+ * Writes the cert internal byte representation to the given buffer.
+ * 
+ * @param cert the key to serialize
+ * @param buf the buffer
+ * @param buflen the buffer length
+ * @returns the number of written bytes
+ */
+int cert2buf(X509 **cert, char* buf, int buflen);
+
+/**
+ * Reads the cert from the given buffer.
+ * 
+ * @param buf the buffer
+ * @param buflen the buffer length
+ * @param cert the key 
+ * @returns 1 in case of success, <=0 otherwise
+ */
+int buf2cert(char* buf, int buflen, X509 **cert);
+
 
 /**
  * Extracts the username (aka CN) from the given certificate

@@ -31,7 +31,10 @@ protected:
     int socket_fd;
 
     /** Pre-allocated buffer for incoming messages */
-    char buffer[MAX_MSG_SIZE];
+    char buffer_in[MAX_MSG_SIZE];
+
+    /** Pre-allocated buffer for outgoing messages */
+    char buffer_out[MAX_MSG_SIZE];
 
     /** Index in the buffer that has been read up to now */
     msglen_t buf_idx;
@@ -178,4 +181,4 @@ public:
     int getPort(){return ntohs(my_addr.sin_port);}
 };
 
-#endif // SOCKET_WRAPPER_H
+#endif // SOCKET_WRAPPER_Hln

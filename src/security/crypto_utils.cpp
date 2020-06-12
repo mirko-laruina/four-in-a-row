@@ -51,7 +51,57 @@ int buf2pkey(char* buf, int buflen, EVP_PKEY **key){
     }
 
     BIO_free(bio);
-    return KEY_BIO_SIZE;
+    return 1;
+}
+
+int cert2buf(X509 **cert, char* buf, int buflen){
+    char *bio_buf;
+    long len;
+
+    BIO *bio = BIO_new(BIO_s_mem());
+    if (bio == NULL){
+        handleErrors();
+        return -1;
+    }
+
+    if (PEM_write_bio_X509(bio, *cert) != 1){
+        handleErrors();
+        return -1;
+    }
+
+    len = BIO_get_mem_data(bio, &bio_buf);
+    if (len <= 0){
+        handleErrors();
+        return -1;
+    }
+
+    if (len > buflen){
+        LOG(LOG_ERR, "Buffer is too small: %ld > %d", len, buflen);
+        BIO_free(bio);
+        return -1;
+    }
+
+    memcpy(buf, bio_buf, len);
+    BIO_free(bio);
+
+    LOG(LOG_DEBUG, "Writing %ld bytes to buffer", len);
+
+    return len;
+}
+
+int buf2cert(char* buf, int buflen, X509 **cert){
+    BIO* bio = BIO_new_mem_buf(buf, buflen);
+    if (bio == NULL){
+        handleErrors();
+        return -1;
+    }
+
+    if (PEM_read_bio_X509(bio, cert, NULL, NULL) == NULL){
+        handleErrors();
+    }
+
+    BIO_free(bio);
+    return 1;
 }
 
 string usernameFromCert(X509* cert){

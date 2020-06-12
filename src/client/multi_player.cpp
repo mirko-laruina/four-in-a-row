@@ -90,13 +90,25 @@ int playWithPlayer(int turn, SecureSocketWrapper *sw){
     return 0;
 }
 
-SecureSocketWrapper* waitForPeer(int port, X509* cert, EVP_PKEY* key, X509_STORE* store){
+SecureSocketWrapper* waitForPeer(int port, SecureHost host, X509* cert, EVP_PKEY* key, X509_STORE* store){
     ServerSecureSocketWrapper *ssw;
     ssw = new ServerSecureSocketWrapper(cert, key, store, port);
 
     cout<<"Waiting for connection on port: "<<ssw->getPort()<<endl;
 
-    SecureSocketWrapper *sw = ssw->acceptClient();
+    SecureSocketWrapper *sw = ssw->acceptClient(host.getCert());
+
+    if (sw == NULL){
+        LOG(LOG_ERR, "Connection error: no client with valid certificate connected");
+        return NULL;
+    }
+
+    int ret = sw->handshakeServer();
+
+    if (ret != 0){
+        LOG(LOG_ERR, "Handshake error");
+        return NULL;
+    }
 
     Host p = sw->getConnectedHost();
     cout<<"Accepted client: "<<p.toString()<<endl;
@@ -117,10 +129,30 @@ SecureSocketWrapper* connectToPeer(SecureHost peer, X509* cert, EVP_PKEY* key, X
 
     ClientSecureSocketWrapper *csw = new ClientSecureSocketWrapper(cert, key, store);
 
-    int ret = csw->connectServer(peer);
+    int ret;
+    int retry = 10;
+    do {
+        retry--;
+        ret = csw->connectServer(peer); 
+        if (ret != 0){
+            if (retry != 0){
+                LOG(LOG_INFO, "Peer is not online yet, retrying in 1 second.");
+                sleep(1);
+            } else {
+                break;
+            }
+        }
+    } while(ret != 0);
 
     if (ret != 0){
         LOG(LOG_ERR, "Connection error");
+        return NULL;
+    }
+
+    ret = csw->handshakeClient();
+
+    if (ret != 0){
+        LOG(LOG_ERR, "Handshake error");
         return NULL;
     }
 

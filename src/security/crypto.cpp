@@ -1,12 +1,12 @@
 #include "security/crypto.h"
 #include "logging.h"
 
-int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
-                    unsigned char *aad, int aad_len,
-                    unsigned char *key,
-                    unsigned char *iv,
-                    unsigned char *ciphertext,
-                    unsigned char *tag)
+int aes_gcm_encrypt(char *plaintext, int plaintext_len,
+                    char *aad, int aad_len,
+                    char *key,
+                    char *iv,
+                    char *ciphertext,
+                    char *tag)
 {
     EVP_CIPHER_CTX *ctx;
 
@@ -19,21 +19,21 @@ int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
         handleErrors();
 
     /* Initialise the encryption operation. */
-    if (1 != EVP_EncryptInit(ctx, EVP_aes_128_gcm(), key, iv))
+    if (1 != EVP_EncryptInit(ctx, EVP_aes_128_gcm(), (unsigned char*) key, (unsigned char*) iv))
         handleErrors();
 
     /*
      * Provide any AAD data. This can be called zero or more times as
      * required
      */
-    if (1 != EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_len))
+    if (1 != EVP_EncryptUpdate(ctx, NULL, &len, (unsigned char*) aad, aad_len))
         handleErrors();
 
     /*
      * Provide the message to be encrypted, and obtain the encrypted output.
      * EVP_EncryptUpdate can be called multiple times if necessary
      */
-    if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
+    if (1 != EVP_EncryptUpdate(ctx, (unsigned char*) ciphertext, &len, (unsigned char*) plaintext, plaintext_len))
         handleErrors();
     ciphertext_len = len;
 
@@ -41,7 +41,7 @@ int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
      * Finalise the encryption. Normally ciphertext bytes may be written at
      * this stage, but this does not occur in GCM mode
      */
-    if (1 != EVP_EncryptFinal(ctx, ciphertext + len, &len))
+    if (1 != EVP_EncryptFinal(ctx, (unsigned char*) ciphertext + len, &len))
         handleErrors();
     ciphertext_len += len;
 
@@ -55,12 +55,12 @@ int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
     return ciphertext_len;
 }
 
-int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
-                    unsigned char *aad, int aad_len,
-                    unsigned char *key,
-                    unsigned char *iv,
-                    unsigned char *plaintext,
-                    unsigned char *tag
+int aes_gcm_decrypt(char *ciphertext, int ciphertext_len,
+                    char *aad, int aad_len,
+                    char *key,
+                    char *iv,
+                    char *plaintext,
+                    char *tag
                     )
 {
     EVP_CIPHER_CTX *ctx;
@@ -73,21 +73,21 @@ int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
         handleErrors();
 
     /* Initialise the decryption operation. */
-    if (!EVP_DecryptInit(ctx, EVP_aes_128_gcm(), key, iv))
+    if (!EVP_DecryptInit(ctx, EVP_aes_128_gcm(), (unsigned char*) key, (unsigned char*) iv))
         handleErrors();
 
     /*
      * Provide any AAD data. This can be called zero or more times as
      * required
      */
-    if (!EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_len))
+    if (!EVP_DecryptUpdate(ctx, NULL, &len, (unsigned char*) aad, aad_len))
         handleErrors();
 
     /*
      * Provide the message to be decrypted, and obtain the plaintext output.
      * EVP_DecryptUpdate can be called multiple times if necessary
      */
-    if (!EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
+    if (!EVP_DecryptUpdate(ctx, (unsigned char*) plaintext, &len, (unsigned char*) ciphertext, ciphertext_len))
         handleErrors();
     plaintext_len = len;
 
@@ -99,7 +99,7 @@ int aes_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
      * Finalise the decryption. A positive return value indicates success,
      * anything else is a failure - the plaintext is not trustworthy.
      */
-    ret = EVP_DecryptFinal(ctx, plaintext + len, &len);
+    ret = EVP_DecryptFinal(ctx, (unsigned char*) plaintext + len, &len);
 
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
@@ -194,7 +194,7 @@ int get_ecdh_key(EVP_PKEY **key)
  * @param shared_key    output buffer location (unallocated), it will contained the shared key
  * @return int          ???
  */
-int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char **shared_key)
+int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, char **shared_key)
 {
     EVP_PKEY_CTX *derivation_ctx;
     size_t shared_key_len;
@@ -216,14 +216,14 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, unsigned char **shared_key)
 
     // "Dummy" derivation to extract key len
     EVP_PKEY_derive(derivation_ctx, NULL, &shared_key_len);
-    *shared_key = (unsigned char *)malloc(shared_key_len);
+    *shared_key = (char *)malloc(shared_key_len);
     if (!shared_key)
     {
         handleErrors();
     }
 
     // Real derivation
-    if (EVP_PKEY_derive(derivation_ctx, *shared_key, &shared_key_len) <= 0)
+    if (EVP_PKEY_derive(derivation_ctx, (unsigned char*) *shared_key, &shared_key_len) <= 0)
     {
         handleErrors();
     }
@@ -251,9 +251,9 @@ nonce_t get_rand()
  * @param char  buffer to fill
  * @param bytes number of bytes (buffer length)
  */
-void get_rand(unsigned char* buffer, int bytes){
+void get_rand(char* buffer, int bytes){
     RAND_poll();
-    RAND_bytes(buffer, bytes);
+    RAND_bytes((unsigned char*) buffer, bytes);
 }
 
 /**
@@ -374,17 +374,17 @@ bool verify_peer_cert(X509_STORE *store, X509 *cert)
 }
 
 int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
-         unsigned char *hmac)
+         char *hmac)
 {
     const EVP_MD *md = EVP_sha256();
     unsigned int hash_size = EVP_MD_size(md);
-    hmac = (unsigned char *)malloc(hash_size);
+    hmac = (char *)malloc(hash_size);
 
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_Init_ex(ctx, key, keylen, md, NULL);
 
-    HMAC_Update(ctx, (unsigned char *)msg, sizeof(msg));
-    HMAC_Final(ctx, hmac, &hash_size);
+    HMAC_Update(ctx, (unsigned char*) msg, sizeof(msg));
+    HMAC_Final(ctx, (unsigned char*) hmac, &hash_size);
 
     HMAC_CTX_free(ctx);
     /*
@@ -397,7 +397,7 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
     return hash_size;
 }
 
-bool compare_hmac(unsigned char *hmac_expected, unsigned char *hmac_rcv, unsigned int len)
+bool compare_hmac(char *hmac_expected, char *hmac_rcv, unsigned int len)
 {
     if (0 != CRYPTO_memcmp(hmac_expected, hmac_rcv, len))
     {
@@ -409,9 +409,9 @@ bool compare_hmac(unsigned char *hmac_expected, unsigned char *hmac_rcv, unsigne
     }
 }
 
-void hkdf_one_info(unsigned char *key, size_t key_len,
-                   unsigned char *info, size_t info_len,
-                   unsigned char *out, size_t outlen)
+void hkdf_one_info(char *key, size_t key_len,
+                   char *info, size_t info_len,
+                   char *out, size_t outlen)
 {
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
     if (!ctx)
@@ -436,22 +436,22 @@ void hkdf_one_info(unsigned char *key, size_t key_len,
     {
         handleErrors();
     }
-    if (EVP_PKEY_derive(ctx, out, &outlen) <= 0)
+    if (EVP_PKEY_derive(ctx, (unsigned char*) out, &outlen) <= 0)
     {
         handleErrors();
     }
     EVP_PKEY_CTX_free(ctx);
 }
 
-void hkdf(unsigned char *key, size_t key_len,
+void hkdf(char *key, size_t key_len,
           nonce_t nonce1, nonce_t nonce2,
           char *label,
-          unsigned char *out, size_t outlen)
+          char *out, size_t outlen)
 {
     // label is a string, we remove the termination null char
     size_t info_len = sizeof(nonce_t) * 2 + strlen(label);
-    unsigned char *info = (unsigned char *)malloc(info_len);
-    unsigned char *info_buf = info;
+    char *info = (char *)malloc(info_len);
+    char *info_buf = info;
     strcpy((char *)info_buf, label);
     info_buf += strlen(label);
     memcpy(info_buf, (void *)&nonce1, sizeof(nonce1));
@@ -462,9 +462,9 @@ void hkdf(unsigned char *key, size_t key_len,
     free(info);
 }
 
-int dsa_sign(unsigned char* msg, int msglen, unsigned char* signature,
+int dsa_sign(char* msg, int msglen, char* signature,
              EVP_PKEY *prvkey){
-    unsigned int sign_len;
+            unsigned int sign_len;
 
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     if (ctx == NULL){
@@ -475,11 +475,11 @@ int dsa_sign(unsigned char* msg, int msglen, unsigned char* signature,
         handleErrors();
     }
 
-    if (EVP_SignUpdate(ctx, (unsigned char*)msg, msglen) != 1){
+    if (EVP_SignUpdate(ctx, (unsigned char*) msg, msglen) != 1){
         handleErrors();
     }
 
-    if (EVP_SignFinal(ctx, signature, &sign_len, prvkey) != 1){
+    if (EVP_SignFinal(ctx, (unsigned char*) signature, &sign_len, prvkey) != 1){
         handleErrors();
     }
 
@@ -488,8 +488,8 @@ int dsa_sign(unsigned char* msg, int msglen, unsigned char* signature,
     return sign_len;
 }
 
-bool dsa_verify(unsigned char* msg, int msglen,
-            unsigned char* signature, int sign_len,
+bool dsa_verify(char* msg, int msglen,
+            char* signature, int sign_len,
             EVP_PKEY *pkey){
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
 
@@ -505,7 +505,7 @@ bool dsa_verify(unsigned char* msg, int msglen,
         handleErrors();
     }
 
-    int ret = EVP_VerifyFinal(ctx, signature, sign_len, pkey);
+    int ret = EVP_VerifyFinal(ctx, (unsigned char*) signature, sign_len, pkey);
     if(ret != 1){
         return false;
     }

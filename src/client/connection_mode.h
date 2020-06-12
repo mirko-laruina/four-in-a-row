@@ -31,19 +31,19 @@ enum ConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER, SINGLE_P
  */
 struct ConnectionMode {
     enum ConnectionType connection_type;
+    SecureHost host;
     union{
-        SecureHost host;
-        int listen_port;
+        uint16_t listen_port;
         int exit_code;
     };
     ConnectionMode(enum ConnectionType connection_type, 
-                        int listen_port) 
-            : connection_type(connection_type), listen_port(listen_port) {}
-    ConnectionMode(enum ConnectionType connection_type, 
-                        char* ip, int port, X509* cert) 
-            : connection_type(connection_type), host(SecureHost(ip, port,cert)) {}
-    ConnectionMode(enum ConnectionType connection_type, SecureHost host) 
-            : connection_type(connection_type), host(host) {}
+                        char* ip, int port, X509* cert, uint16_t listen_port) 
+            : connection_type(connection_type), host(SecureHost(ip, port,cert)), listen_port(listen_port) {}
+    ConnectionMode(enum ConnectionType connection_type, SecureHost host, uint16_t listen_port) 
+            : connection_type(connection_type), host(host), listen_port(listen_port) {}
+
+    ConnectionMode(enum ConnectionType connection_type, int exit_code) 
+            : connection_type(connection_type), exit_code(exit_code) {}
 
 };
 
