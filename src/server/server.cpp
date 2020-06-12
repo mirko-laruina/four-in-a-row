@@ -265,12 +265,15 @@ bool handleClientVerifyMessage(User* u, ClientVerifyMessage* cvm){
     }
 }
 
-bool handleMessage(User* user, Message* msg){
+bool handleMessage(User* user, Message* raw_msg){
     bool res = true;
-    LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
-        user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
 
     user->lock();
+
+    Message* msg = user->getSocketWrapper()->handleMsg(raw_msg);
+
+    LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
+        user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
 
     switch(user->getState()){
         case JUST_CONNECTED:
@@ -337,6 +340,8 @@ bool handleMessage(User* user, Message* msg){
                 user->getUsername().c_str(), (int) user->getState());
     }
 
+    delete msg;
+
     user->unlock();
     return res;
 }
@@ -352,7 +357,6 @@ void* worker(void *args){
             }
             user_list.yield(u);
         }
-        delete p.second;
     }
         
 }

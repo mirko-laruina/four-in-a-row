@@ -49,10 +49,10 @@ SecureSocketWrapper::~SecureSocketWrapper(){
 
 Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
 {
-    // if (!peer_authenticated){
-    //     LOG(LOG_WARN, "Unauthenticated peer sent encrypted message");
-    //     return NULL;
-    // }
+    if (!peer_authenticated){
+        LOG(LOG_WARN, "Unauthenticated peer sent encrypted message");
+        return NULL;
+    }
 
     msglen_t sm_len = sm->size();
     msglen_t pt_len = sm->size() - TAG_SIZE - 1;
@@ -129,12 +129,7 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
 
 Message *SecureSocketWrapper::readPartMsg()
 {
-    Message *m = sw->readPartMsg();
-    if (!m)
-    {
-        return NULL;
-    }
-    return handleMsg(m);
+    return sw->readPartMsg();
 }
 
 Message *SecureSocketWrapper::receiveAnyMsg()
