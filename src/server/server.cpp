@@ -138,7 +138,7 @@ bool handleChallengeMessage(User* u, ChallengeMessage* msg){
     doubleUnlock(u, challenged);
     user_list.yield(challenged);
 
-    return true;
+    return res;
 }
 
 bool handleGameEndMessage(User* u, GameEndMessage* msg){
