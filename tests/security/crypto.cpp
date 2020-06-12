@@ -124,6 +124,7 @@ int main(){
 
     lenA = dhke(keyA, keyB, secretA);
     lenB = dhke(keyA, keyB, secretB);
+    printf("DHKE secret len: %d, %d\n", lenA, lenB);
     if (lenA != lenB || memcmp(secretA, secretB, lenA) != 0){
         printf("ECDH secret is different\n");
         return 1;
@@ -205,6 +206,34 @@ int main(){
         printf("HKDF produced same key with different paramenters!\n");
         return 1;
     }
+
+    // dsa
+    EVP_PKEY* mirko_key = load_key_file("mirko_key.pem", NULL);
+    unsigned char signature[1024];
+    int sign_len = dsa_sign((unsigned char*)plaintext, 
+            strlen((char*)plaintext)+1, 
+            signature, mirko_key
+    );
+    printf("Signature length: %d", sign_len);
+    bool vfy = dsa_verify((unsigned char*)plaintext, 
+            strlen((char*)plaintext)+1, 
+            signature, sign_len,
+            X509_get_pubkey(mirko_cert));
+    if (!vfy){
+        printf("DSA verify failed!\n");
+        return 1;
+    }
+    vfy = dsa_verify((unsigned char*)plaintext, 
+            strlen((char*)plaintext)+1, 
+            signature, sign_len,
+            X509_get_pubkey(up_cert));
+    if (vfy){
+        printf("DSA verify succeeded with wrong certificate!\n");
+        return 1;
+    }
+
+
+
 
     return 0;
 }
