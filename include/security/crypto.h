@@ -17,10 +17,35 @@
 #include <string.h>
 #include "logging.h"
 
-#define TAG_SIZE    16
-#define IV_SIZE     12
+#define TAG_SIZE     16  // TODO check
+#define IV_SIZE      12  // TODO check
+#define KEY_SIZE     16  // TODO check
+#define DS_SIZE      256  // TODO check
+#define ECDH_SIZE    32  // TODO check
+#define KEY_BIO_SIZE 178 // TODO check
 
 typedef uint32_t nonce_t;
+
+/**
+ * @brief Print OpenSSL errors
+ */
+#define handleErrorsNoAbort(level) { \
+    LOG((level), "OpenSSL Exception"); \
+    FILE* stream; \
+    if (level < LOG_ERR) \
+        stream = stdout; \
+    else \
+        stream = stderr; \
+    ERR_print_errors_fp(stream); \
+}
+
+/**
+ * @brief Print OpenSSL errors and abort
+ */
+#define handleErrors() { \
+    handleErrorsNoAbort(LOG_ERR) \
+    abort(); \
+}
 
 /**
  * Encrypts using AES in GCM mode
@@ -118,6 +143,15 @@ X509 *load_cert_file(char *file_name);
 X509_CRL *load_crl_file(char *file_name);
 
 /**
+ * @brief Load a key from file
+ * 
+ * @param file_name     file name of the key file
+ * @param password      key password
+ * @return X509*        the key ptr, NULL if not read correctly
+ */
+EVP_PKEY *load_key_file(char *file_name, char* password);
+
+/**
  * @brief Build a CA store from CA certificate and CRL
  * 
  * @param cacert        CA certificate
@@ -190,5 +224,30 @@ void hkdf(unsigned char *key, size_t key_len,
           nonce_t nonce1, nonce_t nonce2,
           char *label,
           unsigned char *out, size_t outlen);
+
+/**
+ * Signs the given message
+ * 
+ * @param msg the message to be signed
+ * @param msglen the length of the message to be signed
+ * @param signature the output signature
+ * @param prvkey the private key
+ * @returns the length of the signature
+ */
+int dsa_sign(unsigned char* msg, int msglen, unsigned char* signature,
+             EVP_PKEY *prvkey);
+
+/**
+ * Checks the given signature on the given message
+ * 
+ * @param msg the message to be signed
+ * @param msglen the length of the message to be signed
+ * @param signature the signature
+ * @param prvkey the public key
+ * @returns true if message is authentic, false otherwise
+ */
+bool dsa_verify(unsigned char* msg, int msglen,
+            unsigned char* signature, int sign_len,
+            EVP_PKEY *pkey);
 
 #endif

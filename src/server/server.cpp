@@ -34,13 +34,18 @@
 #include "user_list.h"
 #include "utils/message_queue.h"
 
+#include "security/crypto_utils.h"
+
 using namespace std;
 
 typedef pair<int,Message*> msgqueue_t;
+typedef map<string,X509*> cert_map_t;
 
 static UserList user_list;
 static MessageQueue<msgqueue_t,MAX_QUEUE_LENGTH> message_queue;
 static pthread_t threads[N_THREADS];
+static cert_map_t cert_map;
+static X509* cert;
 
 void logUnexpectedMessage(User* u, Message* m){
     LOG(LOG_WARN, "User %s (state %d) was not expecting a message of type %d", 
@@ -226,6 +231,30 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
     return res;
 }
 
+bool handleClientHelloMessage(User* u, ClientHelloMessage* chm){
+    string username = chm->getMyId();
+    cert_map_t::iterator res;
+    SecureSocketWrapper *sw = u->getSocketWrapper();
+    
+    if ((res = cert_map.find(username)) != cert_map.end()){
+        sw->setOtherCert(res->second);
+        int ret = u->getSocketWrapper()->handleClientHello(chm);
+        return ret == 0;
+    } else{
+        return false;
+    }
+}
+
+bool handleClientVerifyMessage(User* u, ClientVerifyMessage* cvm){
+    int ret = u->getSocketWrapper()->handleClientVerify(cvm);
+    if(ret != 0){
+        u->setState(JUST_CONNECTED);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool handleMessage(User* user, Message* msg){
     bool res = true;
     LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
@@ -235,6 +264,21 @@ bool handleMessage(User* user, Message* msg){
 
     switch(user->getState()){
         case JUST_CONNECTED:
+            switch(msg->getType()){
+                case CLIENT_HELLO:
+                    res = handleClientHelloMessage(user,
+                        dynamic_cast<ClientHelloMessage*>(msg));
+                    break;
+                case CLIENT_VERIFY:
+                    res = handleClientVerifyMessage(user,
+                        dynamic_cast<ClientVerifyMessage*>(msg));
+                    break;
+                // TODO: handle cert request
+                default:
+                    logUnexpectedMessage(user, msg);
+            }
+            break;
+        case SECURELY_CONNECTED:
             switch(msg->getType()){
                 case REGISTER:
                     res = handleRegisterMessage(user,        
@@ -309,17 +353,47 @@ void init_threads(){
     }
 }
 
+bool checkCertsInCertMap(X509_STORE* store, cert_map_t cert_map){
+    for (cert_map_t::iterator it = cert_map.begin();
+        it != cert_map.end();
+        ++it
+    ){
+        if (!verify_peer_cert(store, it->second)){
+            LOG(LOG_ERR, "Validation failed for certificate in directory: %s", 
+                    it->first.c_str());
+            return false;
+        }
+    }
+    return true;
+
+}
+
 int main(int argc, char** argv){
     fd_set active_fd_set, read_fd_set;
 
-    if (argc < 2){
-        cout<<"Usage: "<<argv[0]<<" port"<<endl;
+    if (argc < 7){
+        cout<<"Usage: "<<argv[0]<<" port cert.pem key.pem cacert.pem crl.pem"<<endl;
         exit(1);
     }
 
     int port = atoi(argv[1]);
+    cert = load_cert_file(argv[2]);
+    EVP_PKEY* key = load_key_file(argv[3], NULL);
+    X509* cacert = load_cert_file(argv[4]);
+    X509_CRL* crl = load_crl_file(argv[5]);
+    X509_STORE* store = build_store(cacert, crl);
+    cert_map = buildCertMapFromDirectory(argv[6]);
 
-    ServerSecureSocketWrapper server_sw(port);
+    if (cert_map.size() == 0){
+        LOG(LOG_ERR, "No certificates found in directory");
+        return 1;
+    }
+
+    if (!checkCertsInCertMap(store, cert_map)){
+        return 1;
+    }
+
+    ServerSecureSocketWrapper server_sw(cert, key, store, port);
 
     init_threads();
 

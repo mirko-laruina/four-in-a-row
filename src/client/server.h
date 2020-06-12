@@ -20,13 +20,13 @@ using namespace std;
  */
 class Server{
 private:
-    Host host;
+    SecureHost host;
     ClientSecureSocketWrapper* sw;
 public:
     /**
      * Constructor
      */
-    Server(Host host) : host(host) {sw = new ClientSecureSocketWrapper();}
+    Server(SecureHost host, X509* cert, EVP_PKEY* key, X509_STORE* store) : host(host) {sw = new ClientSecureSocketWrapper(cert, key, store);}
 
     /** 
      * Destructor
@@ -64,7 +64,7 @@ public:
      * @returns -1 in case of refused challenge
      * @returns 1  in case of connection failures
      */
-    int challengePeer(string username, Host* peerHost);
+    int challengePeer(string username, SecureHost* peerHost);
 
     /**
      * Replies to the challenge of another user.
@@ -78,7 +78,7 @@ public:
      * @returns -1 in case of refused challenge
      * @returns 1  in case of connection failures
      */
-    int replyPeerChallenge(string username, bool response, Host* peerHost, uint16_t *listen_port);
+    int replyPeerChallenge(string username, bool response, SecureHost* peerHost, uint16_t *listen_port);
 
     /**
      * Returns the internal SocketWrapper.

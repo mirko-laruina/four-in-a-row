@@ -32,7 +32,7 @@ class UserList;
  * PLAYING: the user is currently playing with another user.
  * DISCONNECTED: the user is disconnected.
  */
-enum UserState {JUST_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
+enum UserState {JUST_CONNECTED, SECURELY_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
 
 /**
  * Class representing a user.

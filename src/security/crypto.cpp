@@ -1,27 +1,6 @@
 #include "security/crypto.h"
 #include "logging.h"
 
-/**
- * @brief Print OpenSSL errors
- */
-#define handleErrorsNoAbort(level) { \
-    LOG((level), "OpenSSL Exception"); \
-    FILE* stream; \
-    if (level < LOG_ERR) \
-        stream = stdout; \
-    else \
-        stream = stderr; \
-    ERR_print_errors_fp(stream); \
-}
-
-/**
- * @brief Print OpenSSL errors and abort
- */
-#define handleErrors() { \
-    handleErrorsNoAbort(LOG_ERR) \
-    abort(); \
-}
-
 int aes_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
                     unsigned char *aad, int aad_len,
                     unsigned char *key,
@@ -296,6 +275,25 @@ X509 *load_cert_file(char *file_name)
 }
 
 /**
+ * @brief Load a key from file
+ * 
+ * @param file_name     file name of the key file
+ * @param password      key password
+ * @return X509*        the key ptr, NULL if not read correctly
+ */
+EVP_PKEY *load_key_file(char *file_name, char* password)
+{
+    FILE *key_file = fopen(file_name, "r");
+    if (!key_file)
+    {
+        return NULL;
+    }
+    EVP_PKEY *key = PEM_read_PrivateKey(key_file, NULL, NULL, password);
+    fclose(key_file);
+    return key;
+}
+
+/**
  * @brief Load certificate revocation list from file
  * 
  * @param file_name    file name
@@ -462,4 +460,54 @@ void hkdf(unsigned char *key, size_t key_len,
 
     hkdf_one_info(key, key_len, info, info_len, out, outlen);
     free(info);
+}
+
+int dsa_sign(unsigned char* msg, int msglen, unsigned char* signature,
+             EVP_PKEY *prvkey){
+    unsigned int sign_len;
+
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (ctx == NULL){
+        handleErrors();
+    }
+
+    if (EVP_SignInit(ctx, EVP_sha256()) != 1){
+        handleErrors();
+    }
+
+    if (EVP_SignUpdate(ctx, (unsigned char*)msg, msglen) != 1){
+        handleErrors();
+    }
+
+    if (EVP_SignFinal(ctx, signature, &sign_len, prvkey) != 1){
+        handleErrors();
+    }
+
+    EVP_MD_CTX_free(ctx);  
+
+    return sign_len;
+}
+
+bool dsa_verify(unsigned char* msg, int msglen,
+            unsigned char* signature, int sign_len,
+            EVP_PKEY *pkey){
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+
+    if (ctx == NULL){
+        handleErrors();
+    }
+
+    if (EVP_VerifyInit(ctx, EVP_sha256()) != 1){
+        handleErrors();
+    }
+
+    if (EVP_VerifyUpdate(ctx, msg, msglen) != 1){
+        handleErrors();
+    }
+
+    int ret = EVP_VerifyFinal(ctx, signature, sign_len, pkey);
+    if(ret != 1){
+        return false;
+    }
+    return true;    
 }

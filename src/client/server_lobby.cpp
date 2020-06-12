@@ -18,7 +18,8 @@
 #include <sstream>
 
 #include "utils/args.h"
-#include "network/socket_wrapper.h"
+#include "security/secure_socket_wrapper.h"
+#include "security/crypto_utils.h"
 
 #include "server_lobby.h"
 #include "server.h"
@@ -36,7 +37,7 @@ void printAvailableActions(){
     cout<<"NB: you cannot receive challenges if you are challenging another user"<< endl;
 }
 
-int doAction(Args args, Server *server, Host* peer_host){
+int doAction(Args args, Server *server, SecureHost* peer_host){
     ostringstream os;
     os << args;
     LOG(LOG_DEBUG, "Args: %s", os.str().c_str());
@@ -70,7 +71,7 @@ int doAction(Args args, Server *server, Host* peer_host){
 
 int handleReceivedChallenge(Server *server, 
                             ChallengeForwardMessage* msg, 
-                            Host* peer_host,
+                            SecureHost* peer_host,
                             uint16_t* listen_port){
     char in_buffer[2];
     cout<<endl<<"You received a challenge from "<<msg->getUsername()<<endl;
@@ -86,28 +87,17 @@ int handleReceivedChallenge(Server *server,
 }
 
 
-ConnectionMode serverLobby(Host host){
+ConnectionMode serverLobby(SecureHost host, X509* cert, EVP_PKEY* key, X509_STORE* store){
     fd_set active_fd_set, read_fd_set;
 
-    Server server(host);
+    Server server(host, cert, key, store);
+    // TODO do not disconnect from server!!
 
     char in_buffer[256];
 
-    cout<<"What is your username?"<<endl;
+    string username = usernameFromCert(cert);
 
-    do{
-        cout<<"> "<<flush;
-        cin.getline(in_buffer, sizeof(in_buffer));
-        if (strlen(in_buffer) < MIN_USERNAME_LENGTH){
-            cout<<"Username must be at least "<<MIN_USERNAME_LENGTH<<" characters."<<endl;
-        }
-        if (strlen(in_buffer) > MAX_USERNAME_LENGTH){
-            cout<<"Username must be at most "<<MAX_USERNAME_LENGTH<<" characters."<<endl;
-        }
-    } while(strlen(in_buffer) < MIN_USERNAME_LENGTH 
-            || strlen(in_buffer) > MAX_USERNAME_LENGTH);
-
-    string username(in_buffer);
+    cout<<"Hello "<<username<<endl;
 
     cout<<"Registering to "<<host.toString()<<" as "<<username<<endl;
     
@@ -116,7 +106,7 @@ ConnectionMode serverLobby(Host host){
         return ConnectionMode(EXIT, -1);
     }
 
-    Host peer_host;
+    SecureHost peer_host;
 
     /* Initialize the set of active sockets. */
     FD_ZERO(&active_fd_set);

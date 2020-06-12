@@ -21,6 +21,10 @@ int Server::registerToServer(string username){
     if (sw->connectServer(host) != 0)
         return 1;
 
+    if (sw->handshake() != 0){
+        return 1;
+    }
+
     RegisterMessage msg(username);
 
     return sw->sendMsg(&msg);
@@ -49,7 +53,7 @@ string Server::getUserList(){
     return usernames;
 }
 
-int Server::challengePeer(string username, Host* peerHost){
+int Server::challengePeer(string username, SecureHost* peerHost){
     ChallengeMessage req_msg(username);
     
     if (sw->sendMsg(&req_msg) != 0)
@@ -78,7 +82,7 @@ int Server::challengePeer(string username, Host* peerHost){
     }   
 }
 
-int Server::replyPeerChallenge(string username, bool response, Host* peerHost, uint16_t *listen_port){
+int Server::replyPeerChallenge(string username, bool response, SecureHost* peerHost, uint16_t *listen_port){
     // TODO handle port already busy
     *listen_port = rand() % (TO_PORT - FROM_PORT + 1) + FROM_PORT;
 

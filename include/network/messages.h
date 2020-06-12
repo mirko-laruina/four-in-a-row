@@ -20,6 +20,7 @@
 #include "network/inet_utils.h"
 #include "network/host.h"
 #include "security/crypto.h"
+#include "security/secure_host.h"
 
 using namespace std;
 
@@ -28,6 +29,38 @@ typedef uint16_t msglen_t;
 
 #define MSGLEN_HTON(x) htons((x))
 #define MSGLEN_NTOH(x) ntohs((x))
+
+/** Utility for getting username size */
+inline size_t usernameSize(string username){
+    return min(username.size(), (size_t) MAX_USERNAME_LENGTH) + 1;
+}
+
+/** Utility for getting username from buffer
+ * 
+ * @param buf the buffer to read the string from
+ * @param buflen the size of the buffer
+ * @returns the read string
+ */
+inline string readUsername(char* buf, size_t buflen){
+    size_t size = min(strnlen(buf, buflen), (size_t) MAX_USERNAME_LENGTH);
+    return string(buf, size);
+}
+
+/** 
+ * Utility for writing username to buffer 
+ * 
+ * NB: buffer must be large enough
+ * 
+ * @param s the username string to be written on buffer
+ * @param buf the buffer to write the string to
+ * @returns number of written bytes
+ */
+inline size_t writeUsername(string s, char* buf){
+    size_t strsize = min(s.size(), (size_t)MAX_USERNAME_LENGTH);
+    strncpy(buf, s.c_str(), strsize);
+    buf[strsize] = '\0';
+    return strsize+1;
+}
 
 /**
  * Possible type of messages.
@@ -149,7 +182,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return min((int)username.size(), MAX_USERNAME_LENGTH) + 1 + 1; }
+    msglen_t size() { return usernameSize(username) + 1; }
 
     string getName() { return "Register"; }
 
@@ -175,7 +208,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return min((int)username.size(), MAX_USERNAME_LENGTH) + 1 + 1; }
+    msglen_t size() { return usernameSize(username) + 1; }
 
     string getName() { return "Challenge"; }
 
@@ -219,7 +252,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return min((int)usernames.size(), MAX_USERNAME_LENGTH) + 1 + 1; }
+    msglen_t size() { return usernameSize(usernames) + 1; }
 
     string getName() { return "User list"; }
 
@@ -269,7 +302,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return min((int)username.size(), MAX_USERNAME_LENGTH) + 1 + 1; }
+    msglen_t size() { return usernameSize(username) + 1; }
 
     string getName() { return "Challenge forward"; }
 
@@ -297,7 +330,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return min((int)username.size(), MAX_USERNAME_LENGTH) + 1 + sizeof(response) + sizeof(listen_port) + 1; }
+    msglen_t size() { return usernameSize(username) + sizeof(response) + sizeof(listen_port) + 1; }
 
     string getName() { return "Challenge response"; }
 
@@ -325,7 +358,7 @@ public:
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return min((int)username.size(), MAX_USERNAME_LENGTH) + 1 + 1; }
+    msglen_t size() { return usernameSize(username) + 1; }
 
     string getName() { return "Game cancel"; }
 
@@ -342,23 +375,24 @@ class GameStartMessage : public Message
 private:
     string username;
     struct sockaddr_in addr;
+    X509* cert;
 
 public:
     GameStartMessage() {}
     GameStartMessage(string username, struct sockaddr_in addr)
-        : username(username), addr(addr) {}
+        : username(username), addr(addr), cert(NULL) {} //TODO cert
     ~GameStartMessage() {}
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
 
-    msglen_t size() { return min((int)username.size(), MAX_USERNAME_LENGTH) + 1 + SERIALIZED_SOCKADDR_IN_LEN + 1; }
+    msglen_t size() { return usernameSize(username) + SERIALIZED_SOCKADDR_IN_LEN + 1; }
 
     string getName() { return "Game start"; }
 
     string getUsername() { return username; }
     struct sockaddr_in getAddr() { return addr; }
-    Host getHost() { return Host(addr); }
+    SecureHost getHost() { return SecureHost(addr, cert); }
 
     MessageType getType() { return GAME_START; }
 };
@@ -372,12 +406,15 @@ private:
 
 public:
     SecureMessage() : ct(NULL), tag(NULL){}
+    SecureMessage(char* ct, msglen_t size, char* tag) : ct(ct), size_(size), tag(tag){}
     ~SecureMessage(){ free(ct); free(tag); }
 
     MessageType getType() { return SECURE_MESSAGE; }
     msglen_t size() { return size_; }
     void setSize(msglen_t s) { size_ = s; }
     string getName() { return "Secure message"; }
+    char* getCt() { return ct; }
+    char* getTag() { return tag; }
 
     msglen_t write(char *buffer);
     msglen_t read(char *buffer, msglen_t len);
@@ -386,21 +423,75 @@ public:
 class ClientHelloMessage: public Message
 {
 private:
-    msglen_t size_;
-    nonce_t nonce;
     EVP_PKEY* eph_key;
+    nonce_t nonce;
+    string my_id;
+    string other_id;
 
 public:
     ClientHelloMessage() : eph_key(NULL) {}
-    ~ClientHelloMessage() { free(eph_key); }
+    ClientHelloMessage(EVP_PKEY* eph_key, nonce_t nonce, string my_id, string other_id) 
+        : eph_key(eph_key), nonce(nonce), my_id(my_id), other_id(other_id) {}
 
     MessageType getType() {return CLIENT_HELLO; }
-    msglen_t size() { return size_; }
-    void setSize(msglen_t s) { size_ = s; }
+    msglen_t size() { return 1 + sizeof(nonce_t) + KEY_BIO_SIZE + usernameSize(my_id) + usernameSize(other_id); }
     string getName() { return "Client Hello message"; }
+    nonce_t getNonce() { return nonce; }
+    EVP_PKEY* getEphKey() { return eph_key; }
+    void setEphKey(EVP_PKEY* eph_key) { this->eph_key=eph_key; }
+    string getMyId() { return my_id; }
+    string getOtherId() { return other_id; }
+
     msglen_t write(char* buffer);
     msglen_t read(char* buffer, msglen_t len);
+};
 
+class ClientVerifyMessage: public Message
+{
+private:
+    char* ds;
+
+public:
+    ClientVerifyMessage() {}
+    ClientVerifyMessage(char* ds) : ds(ds) {}
+    ~ClientVerifyMessage();
+
+    MessageType getType() {return CLIENT_VERIFY; }
+    msglen_t size() { return 1 + DS_SIZE; }
+    string getName() { return "Client Verify message"; }
+    char* getDs() { return ds; }
+
+    msglen_t write(char* buffer);
+    msglen_t read(char* buffer, msglen_t len);
+};
+
+class ServerHelloMessage: public Message
+{
+private:
+    EVP_PKEY* eph_key;
+    nonce_t nonce;
+    string my_id;
+    string other_id;
+    char* ds;
+
+public:
+    ServerHelloMessage(){}
+    ServerHelloMessage(EVP_PKEY* eph_key, nonce_t nonce, string my_id, string other_id, char* ds) 
+        : eph_key(eph_key), nonce(nonce), my_id(my_id), other_id(other_id), ds(ds) {}
+    ~ServerHelloMessage();
+
+    MessageType getType() {return SERVER_HELLO; }
+    msglen_t size() { return 1 + sizeof(nonce_t) + KEY_BIO_SIZE + usernameSize(my_id) + usernameSize(other_id) + DS_SIZE; }
+    string getName() { return "Server Hello message"; }
+    nonce_t getNonce() { return nonce; }
+    EVP_PKEY* getEphKey() { return eph_key; }
+    void setEphKey(EVP_PKEY* eph_key) { this->eph_key=eph_key; }
+    string getMyId() { return my_id; }
+    string getOtherId() { return other_id; }
+    char* getDs() { return ds; }
+
+    msglen_t write(char* buffer);
+    msglen_t read(char* buffer, msglen_t len);
 };
 
 /**

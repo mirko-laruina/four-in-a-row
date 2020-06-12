@@ -14,6 +14,8 @@
 #include "network/messages.h"
 #include "network/inet_utils.h"
 
+#include "security/crypto_utils.h"
+
 Message* readMessage(char *buffer, msglen_t len){
     Message *m;
     int ret;
@@ -24,6 +26,12 @@ Message* readMessage(char *buffer, msglen_t len){
             break;
         case CLIENT_HELLO:
             m = new ClientHelloMessage;
+            break;
+        case SERVER_HELLO:
+            m = new ServerHelloMessage;
+            break;
+        case CLIENT_VERIFY:
+            m = new ClientVerifyMessage;
             break;
         case START_GAME_PEER:
             m = new StartGameMessage;
@@ -74,7 +82,6 @@ Message* readMessage(char *buffer, msglen_t len){
     }
 }
 
-
 msglen_t StartGameMessage::write(char *buffer){
     buffer[0] = (char) START_GAME_PEER;
     return 1;
@@ -100,30 +107,26 @@ msglen_t MoveMessage::read(char *buffer, msglen_t len){
 
 msglen_t RegisterMessage::write(char *buffer){
     buffer[0] = (char) REGISTER;
-    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
-    strncpy(&buffer[1], username.c_str(), strsize);
-    buffer[1+strsize] = '\0';
-    return 2+strsize;
+    size_t strsize = writeUsername(username, &buffer[1]);
+    return 1+strsize;
 }
 
 msglen_t RegisterMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
         return 1;
-    username = string(&buffer[1], min(MAX_USERNAME_LENGTH, len-1));
+    username = readUsername(&buffer[1], len-1);
     return 0;
 }
 
 msglen_t ChallengeMessage::write(char *buffer){
     buffer[0] = (char) CHALLENGE;
-    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
-    strncpy(&buffer[1], username.c_str(), strsize);
-    buffer[1+strsize] = '\0';
-    return 2+strsize;    
+    size_t strsize = writeUsername(username, &buffer[1]);
+    return 1+strsize;  
 }
 msglen_t ChallengeMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
         return 1;
-    username = string(&buffer[1], min(MAX_USERNAME_LENGTH, len-1));
+    username = readUsername(&buffer[1], len-1);
     return 0;
 }
 
@@ -163,15 +166,13 @@ msglen_t UsersListRequestMessage::read(char *buffer, msglen_t len){
 
 msglen_t ChallengeForwardMessage::write(char *buffer){
     buffer[0] = (char) CHALLENGE_FWD;
-    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
-    strncpy(&buffer[1], username.c_str(), strsize);
-    buffer[1+strsize] = '\0';
-    return 2+strsize;    
+    size_t strsize = writeUsername(username, &buffer[1]);
+    return 1+strsize;
 }
 msglen_t ChallengeForwardMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
         return 1;
-    username = string(&buffer[1], min(MAX_USERNAME_LENGTH, len-1));
+    username = readUsername(&buffer[1], len-1);
     return 0;
 }
 
@@ -180,10 +181,8 @@ msglen_t ChallengeResponseMessage::write(char *buffer){
     buffer[1] = (char) response;
     uint16_t nport = htons(listen_port);
     memcpy(&buffer[2], &nport, sizeof(nport));
-    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
-    strncpy(&buffer[4], username.c_str(), strsize);
-    buffer[4+strsize] = '\0';
-    return 5+strsize;   
+    size_t strsize = writeUsername(username, &buffer[4]);
+    return 4+strsize;
 }
 msglen_t ChallengeResponseMessage::read(char *buffer, msglen_t len){
     if (len < 1 + 1 + 2 + MIN_USERNAME_LENGTH+1)
@@ -192,40 +191,34 @@ msglen_t ChallengeResponseMessage::read(char *buffer, msglen_t len){
     uint16_t nlisten_port;
     memcpy(&nlisten_port, &buffer[2], sizeof(nlisten_port));
     listen_port = ntohs(nlisten_port);
-    username = string(&buffer[4], min(MAX_USERNAME_LENGTH, len-4));
+    username = readUsername(&buffer[4], len-4);
     return 0;
 }
 
 msglen_t GameCancelMessage::write(char *buffer){
     buffer[0] = (char) GAME_CANCEL;
-    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
-    strncpy(&buffer[1], username.c_str(), strsize);
-    buffer[1+strsize] = '\0';
-    return 2+strsize;    
+    size_t strsize = writeUsername(username, &buffer[1]);
+    return 1+strsize; 
 }
 msglen_t GameCancelMessage::read(char *buffer, msglen_t len){
     if (len < 1 + MIN_USERNAME_LENGTH+1)
         return 1;
-    username = string(&buffer[1], min(MAX_USERNAME_LENGTH, len-1));
+    username = readUsername(&buffer[1], len-1);
     return 0;
 }
 
 msglen_t GameStartMessage::write(char *buffer){
     buffer[0] = (char) GAME_START;
     sockaddr_in_to_buffer(addr, &buffer[1]);
-    size_t strsize = min((int)username.size(),MAX_USERNAME_LENGTH);
-    strncpy(&buffer[1+SERIALIZED_SOCKADDR_IN_LEN],
-         username.c_str(), 
-         strsize);
-    buffer[1+SERIALIZED_SOCKADDR_IN_LEN+strsize] = '\0';
-    return strsize+1+SERIALIZED_SOCKADDR_IN_LEN+1;
+    size_t strsize = writeUsername(username, &buffer[1+SERIALIZED_SOCKADDR_IN_LEN]);
+    return 1+SERIALIZED_SOCKADDR_IN_LEN+strsize;
 }
 msglen_t GameStartMessage::read(char *buffer, msglen_t len){
     if (len < 1 + SERIALIZED_SOCKADDR_IN_LEN + MIN_USERNAME_LENGTH+1)
         return 1;
     addr = buffer_to_sockaddr_in(&buffer[1]);
-    username = string(&buffer[1+SERIALIZED_SOCKADDR_IN_LEN], 
-        min(MAX_USERNAME_LENGTH, len-1-SERIALIZED_SOCKADDR_IN_LEN));
+    username = readUsername(&buffer[1+SERIALIZED_SOCKADDR_IN_LEN], 
+                            len-1-SERIALIZED_SOCKADDR_IN_LEN);
     return 0;
 }
 
@@ -250,17 +243,99 @@ msglen_t SecureMessage::read(char* buffer, msglen_t len){
 }
 
 msglen_t ClientHelloMessage::write(char* buffer){
-    buffer[0] = (MessageType) CLIENT_HELLO;
-    memcpy(&buffer[1], &nonce, sizeof(nonce));
-    memcpy(&buffer[1+sizeof(nonce)], eph_key, size()-1-sizeof(nonce));
-    return size();
+    int i = 0;
+    buffer[i] = (MessageType) CLIENT_HELLO;
+    i++;
+    memcpy(&buffer[i], &nonce, sizeof(nonce));
+    i += sizeof(nonce);
+    size_t strsize;
+    strsize = writeUsername(my_id, &buffer[i]);
+    i+= strsize;
+    strsize = writeUsername(other_id, &buffer[i]);
+    i+= strsize;
+    int ret = pkey2buf(&eph_key, &buffer[i], size()-i);
+    if (ret > 0){
+        i += ret;
+        return i;
+    } else {
+        return -1;
+    }
 }
 
 msglen_t ClientHelloMessage::read(char* buffer, msglen_t len){
-    setSize(len);
-    memcpy(&nonce, &buffer[1], sizeof(nonce));
-    int key_len = len - sizeof(nonce) - 1;
-    eph_key = (EVP_PKEY* ) malloc(key_len);
-    memcpy(eph_key, &buffer[len-key_len], key_len );
+    int i = 1;
+    memcpy(&nonce, &buffer[i], sizeof(nonce));
+    i += sizeof(nonce);
+    my_id = readUsername(&buffer[i], len-i);
+    i += my_id.size()+1;
+    other_id = readUsername(&buffer[i], len-i);
+    i += other_id.size()+1;
+    int ret = buf2pkey(&buffer[i], len-i, &eph_key);
+    return ret > 0 ? 0 : 1;
+}
+
+ServerHelloMessage::~ServerHelloMessage(){
+    if (ds != NULL){
+        free(ds);
+    }
+}
+
+msglen_t ServerHelloMessage::write(char* buffer){
+    int i = 0;
+    buffer[i] = (MessageType) SERVER_HELLO;
+    i++;
+    memcpy(&buffer[i], &nonce, sizeof(nonce));
+    i += sizeof(nonce);
+    size_t strsize;
+    strsize = writeUsername(my_id, &buffer[i]);
+    i+= strsize;
+    strsize = writeUsername(other_id, &buffer[i]);
+    i+= strsize;
+    memcpy(&buffer[i], ds, DS_SIZE);
+    i += DS_SIZE;
+    int ret = pkey2buf(&eph_key, &buffer[i], size()-i);
+    if (ret > 0){
+        i += ret;
+        return i;
+    } else {
+        return -1;
+    }
+}
+
+msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
+    int i = 1;
+    memcpy(&nonce, &buffer[i], sizeof(nonce));
+    i += sizeof(nonce);
+    my_id = readUsername(&buffer[i], len-i);
+    i += my_id.size()+1;
+    other_id = readUsername(&buffer[i], len-i);
+    i += other_id.size()+1;
+    ds = (char*) malloc(DS_SIZE);
+    memcpy(ds, &buffer[i], DS_SIZE);
+    i += DS_SIZE;
+    int ret = buf2pkey(&buffer[i], len-i, &eph_key);
+    return ret > 0 ? 0 : 1;
+}
+
+ClientVerifyMessage::~ClientVerifyMessage(){
+    if (ds != NULL){
+        free(ds);
+    }
+}
+
+msglen_t ClientVerifyMessage::write(char* buffer){
+    int i = 0;
+    buffer[i] = (MessageType) CLIENT_VERIFY;
+    i++;
+    memcpy(&buffer[i], ds, DS_SIZE);
+    i += DS_SIZE;
+    return i;
+}
+
+msglen_t ClientVerifyMessage::read(char* buffer, msglen_t len){
+    int i = 1;
+    ds = (char*) malloc(DS_SIZE);
+    memcpy(ds, &buffer[i], DS_SIZE);
+    i += DS_SIZE;
     return 0;
 }

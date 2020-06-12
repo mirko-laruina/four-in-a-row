@@ -9,7 +9,7 @@
 #ifndef CONNECTION_MODE_H
 #define CONNECTION_MODE_H
 
-#include "network/host.h"
+#include "security/secure_host.h"
 
 /** 
  * Type of gmae connection requested by the user:
@@ -32,7 +32,7 @@ enum ConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER, SINGLE_P
 struct ConnectionMode {
     enum ConnectionType connection_type;
     union{
-        Host host;
+        SecureHost host;
         int listen_port;
         int exit_code;
     };
@@ -40,9 +40,9 @@ struct ConnectionMode {
                         int listen_port) 
             : connection_type(connection_type), listen_port(listen_port) {}
     ConnectionMode(enum ConnectionType connection_type, 
-                        char* ip, int port) 
-            : connection_type(connection_type), host(Host(ip, port)) {}
-    ConnectionMode(enum ConnectionType connection_type, Host host) 
+                        char* ip, int port, X509* cert) 
+            : connection_type(connection_type), host(SecureHost(ip, port,cert)) {}
+    ConnectionMode(enum ConnectionType connection_type, SecureHost host) 
             : connection_type(connection_type), host(host) {}
 
 };

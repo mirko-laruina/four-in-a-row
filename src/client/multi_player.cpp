@@ -90,9 +90,9 @@ int playWithPlayer(int turn, SecureSocketWrapper *sw){
     return 0;
 }
 
-SecureSocketWrapper* waitForPeer(int port){
+SecureSocketWrapper* waitForPeer(int port, X509* cert, EVP_PKEY* key, X509_STORE* store){
     ServerSecureSocketWrapper *ssw;
-    ssw = new ServerSecureSocketWrapper(port);
+    ssw = new ServerSecureSocketWrapper(cert, key, store, port);
 
     cout<<"Waiting for connection on port: "<<ssw->getPort()<<endl;
 
@@ -112,10 +112,10 @@ SecureSocketWrapper* waitForPeer(int port){
     return sw;
 }
 
-SecureSocketWrapper* connectToPeer(Host peer){
+SecureSocketWrapper* connectToPeer(SecureHost peer, X509* cert, EVP_PKEY* key, X509_STORE* store){
     cout<<"Connecting to: "<<peer.toString()<<endl;
 
-    ClientSecureSocketWrapper *csw = new ClientSecureSocketWrapper();
+    ClientSecureSocketWrapper *csw = new ClientSecureSocketWrapper(cert, key, store);
 
     int ret = csw->connectServer(peer);
 
