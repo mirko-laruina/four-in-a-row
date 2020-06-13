@@ -22,6 +22,8 @@
 
 #define MAX_MSG_TO_SIGN_SIZE (2*MAX_USERNAME_LENGTH + 2 * sizeof(nonce_t) + 2 * KEY_BIO_MAX_SIZE )
 
+#define AAD_SIZE (sizeof(msglen_t) + 1)
+
 class SecureSocketWrapper
 {
 protected:
@@ -96,6 +98,20 @@ protected:
      * @returns number of written bytes
      */
     int buildMsgToSign(const char *role, char *msg);
+
+    /**
+     * Builds the aad of a message.
+     * 
+     * I.e. this function builds the message header as SocketWrapper would.
+     * 
+     * @param msg_type the type of the message
+     * @param len the length of the message
+     * @param aad the aad buffer to write to (it must be AAD_SIZE long)
+     * @returns number of written bytes
+     * 
+     * @see AAD_SIZE
+     */
+    void makeAAD(MessageType msg_type, msglen_t len, char* aad);
 
 public:
     /** 
