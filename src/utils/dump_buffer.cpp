@@ -17,7 +17,7 @@
 #define ROW 32
 
 
-void dump_buffer_hex(char* buffer, int len, int log_level){
+void dump_buffer_hex(char* buffer, int len, int log_level, const char* name){
   char *str, tmp3[4], tmp1[2];
   int i, j;
   int n_rows = (len+ROW-1)/ROW;
@@ -28,7 +28,7 @@ void dump_buffer_hex(char* buffer, int len, int log_level){
   const char* row_sep = "\n";
 
   str[0] = '\0';
-  for (i=0; i<n_rows; i ++){
+  for (i=0; i<n_rows; i++){
     for (j=0; j<ROW; j++){
       int idx = i*ROW+j;
       if (idx < len){
@@ -53,10 +53,10 @@ void dump_buffer_hex(char* buffer, int len, int log_level){
       }
       strcat(str, tmp1);
     }
-
-    strcat(str, row_sep);
+    if (i != n_rows - 1)
+      strcat(str, row_sep);
   }
-  LOG(log_level, "Buffer dump");
+  LOG(log_level, "Dumping %s", name);
   if (log_level >= LOG_LEVEL)
     printf("%s%s\033[0m\n", logColor(log_level), str);
   free(str);

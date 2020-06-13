@@ -19,10 +19,10 @@
  * @param buffer    pointer to the buffer to be printed
  * @param len       the length (in bytes) of the buffer
  */
-void dump_buffer_hex(char* buffer, int len, int log_level);
+void dump_buffer_hex(char* buffer, int len, int log_level, const char* name);
 
 #if LOG_LEVEL == LOG_DEBUG
-#define DUMP_BUFFER_HEX_DEBUG(buffer, len) dump_buffer_hex((buffer), (len), LOG_DEBUG)
+#define DUMP_BUFFER_HEX_DEBUG(buffer, len) dump_buffer_hex(buffer, len, LOG_DEBUG, #buffer)
 #else
 #define DUMP_BUFFER_HEX_DEBUG(buffer, len)
 #endif

@@ -111,7 +111,7 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
     LOG(LOG_DEBUG, "Message encrypted %d bytes with iv: ", ret);
     DUMP_BUFFER_HEX_DEBUG(send_iv, IV_SIZE);
     LOG(LOG_DEBUG, "and tag: ");
-    DUMP_BUFFER_HEX_DEBUG((char*)buffer_tag, TAG_SIZE);
+    DUMP_BUFFER_HEX_DEBUG(buffer_tag, TAG_SIZE);
     LOG(LOG_DEBUG, "SecureMessage of size %d", buf_len + 1 + TAG_SIZE);
 
     if (ret <= 0)
@@ -291,7 +291,7 @@ void SecureSocketWrapper::generateKeys(const char* role){
 
     LOG(LOG_DEBUG, "HKDF parameters BEGIN --------");
     LOG(LOG_DEBUG, "Shared secret:");
-    DUMP_BUFFER_HEX_DEBUG((char*) shared_secret, size);
+    DUMP_BUFFER_HEX_DEBUG(shared_secret, size);
     LOG(LOG_DEBUG, "sv_nonce=%d", sv_nonce);
     LOG(LOG_DEBUG, "cl_nonce=%d", cl_nonce);
     LOG(LOG_DEBUG, "HKDF parameters END --------");
