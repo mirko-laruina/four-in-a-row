@@ -444,19 +444,27 @@ int main(int argc, char** argv){
         return 1;
     }
 
+    LOG(LOG_INFO, "Loaded certificates from %s", argv[6]);
+
     ServerSecureSocketWrapper server_sw(cert, key, store);
 
     int ret = server_sw.bindPort(port);
     if (ret != 0){
         LOG(LOG_FATAL, "Error binding to port %d", port);
-        return 1;
+        exit(1);
     }
 
+    LOG(LOG_INFO, "Binded to port %d", port);
+
     init_threads();
+
+    LOG(LOG_INFO, "Started %d worker threads", N_THREADS);
 
     /* Initialize the set of active sockets. */
     FD_ZERO(&active_fd_set);
     FD_SET(server_sw.getDescriptor(), &active_fd_set);
+
+    LOG(LOG_INFO, "Polling open sockets");
 
     while (1){
         /* Block until input arrives on one or more active sockets. */
@@ -478,7 +486,7 @@ int main(int argc, char** argv){
                 continue;
             }
 
-            perror("select");
+            LOG_PERROR(LOG_FATAL, "Error in select: %s");
             exit(1);
         }
 
@@ -506,7 +514,7 @@ int main(int argc, char** argv){
                     }
                     const char* u_addr_str = u->getSocketWrapper()
                             ->getConnectedHost().toString().c_str();
-                    LOG(LOG_DEBUG, "Available message from %s (%s)",
+                    LOG(LOG_INFO, "Available message from %s (%s)",
                         u->getUsername().c_str(), u_addr_str);
                     try{
                         Message* m = u->getSocketWrapper()->readPartMsg();

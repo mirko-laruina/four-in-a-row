@@ -95,7 +95,7 @@ ConnectionMode handleMessage(Message* msg, Server* server){
     uint16_t listen_port;
 
     int ret;
-    LOG(LOG_DEBUG, "Server sent message %s", msg->getName().c_str());
+    LOG(LOG_INFO, "Server sent message %s", msg->getName().c_str());
     switch(msg->getType()){
         case CHALLENGE_FWD:
             cfm = dynamic_cast<ChallengeForwardMessage*>(msg);
@@ -162,6 +162,11 @@ ConnectionMode serverLobby(Server* server){
             cout<<"Connection to "<<server->getHost().toString()<<" failed!"<<endl;
             return ConnectionMode(EXIT, CONNECTION_ERROR);
         }
+        LOG(LOG_INFO, "Server %s is now connected", 
+                        server->getHost().toString().c_str());
+    } else {
+        LOG(LOG_INFO, "Server %s was already connected", 
+                        server->getHost().toString().c_str());
     }
 
     SecureHost peer_host;
@@ -179,11 +184,11 @@ ConnectionMode serverLobby(Server* server){
         /* Block until input arrives on one or more active sockets. */
         read_fd_set = active_fd_set;
         if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0) {
-            perror("select");
-            exit(1);
+            LOG_PERROR(LOG_ERR, "Error in select: %s");
+            return ConnectionMode(EXIT, GENERIC_ERROR);
         }
 
-        /* Service all the sockets with input pending. */
+        /* Service all the socketsexit(1); with input pending. */
         for (int i = 0; i < FD_SETSIZE; ++i){
             if (FD_ISSET(i, &read_fd_set)){
                 if (i == server->getSocketWrapper()->getDescriptor()){

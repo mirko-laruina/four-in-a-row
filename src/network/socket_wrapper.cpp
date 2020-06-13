@@ -16,8 +16,7 @@
 SocketWrapper::SocketWrapper() {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd < 0){
-        LOG(LOG_ERR, "Could not create socket!\n");
-        perror("Error: ");
+        LOG_PERROR(LOG_ERR, "Error creating socket: %s");
         return;    
     }
     buf_idx = 0;
@@ -44,8 +43,8 @@ Message* SocketWrapper::readPartMsg(){
     DUMP_BUFFER_HEX_DEBUG(buffer_in, len);
     
     if (len < 0){
-        perror("Error:");
-        throw "Error";
+        LOG_PERROR(LOG_ERR, "Error reading from socket: %s");
+        throw "Error reading from socket";
     } else if (len == 0){
         throw "Connection lost";
     } 
@@ -191,9 +190,8 @@ int ClientSocketWrapper::connectServer(Host host){
     );
 
     if (ret != 0){
-        LOG(LOG_ERR, "Error connecting to %s", 
+        LOG_PERROR(LOG_ERR, "Error connecting to %s: %s", 
             sockaddr_in_to_string(host.getAddress()).c_str());
-        perror("Error: ");
         return ret;
     }
     
@@ -204,15 +202,13 @@ int ServerSocketWrapper::bindPort(){
     my_addr = make_my_sockaddr_in(0);
     int ret = bind_random_port(socket_fd, &my_addr);
     if (ret <= 0){
-        LOG(LOG_FATAL, "Error in binding\n");
-        perror("Error: ");
+        LOG_PERROR(LOG_ERR, "Error in binding: %s");
         return ret;
     }
 
     ret = listen(socket_fd, 10);
     if (ret != 0){
-        LOG(LOG_ERR, "Error in setting socket to listen mode\n");
-        perror("Error: ");   
+        LOG_PERROR(LOG_ERR, "Error in setting socket to listen mode: %s");
     }
 
     return ret;
@@ -222,15 +218,13 @@ int ServerSocketWrapper::bindPort(int port){
     my_addr = make_my_sockaddr_in(port);
     int ret = bind(socket_fd, (struct sockaddr*) &my_addr, sizeof(my_addr));
     if (ret != 0){
-        LOG(LOG_FATAL, "Error in binding\n");
-        perror("Error: ");    
+        LOG_PERROR(LOG_ERR, "Error in binding: %s");
         return ret;    
     }
 
     ret = listen(socket_fd, 10);
     if (ret != 0){
-        LOG(LOG_ERR, "Error in setting socket to listen mode\n");
-        perror("Error: ");        
+        LOG_PERROR(LOG_ERR, "Error in setting socket to listen mode: %s");
     }
 
     return ret;

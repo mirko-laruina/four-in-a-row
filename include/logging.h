@@ -93,11 +93,11 @@ inline void printtime(FILE* dbgstream){
                                 break; \
                               case LOG_WARN: \
                                 dbgstream = stderr; \
-                                fprintf(dbgstream, "%s[WARN]", logColor(LOG_WARN)); \
+                                fprintf(dbgstream, "%s[WARN ]", logColor(LOG_WARN)); \
                                 break; \
                               case LOG_INFO: \
                                 dbgstream = stdout; \
-                                fprintf(dbgstream, "%s[INFO]", logColor(LOG_INFO)); \
+                                fprintf(dbgstream, "%s[INFO ]", logColor(LOG_INFO)); \
                                 break; \
                               case LOG_DEBUG: \
                                 dbgstream = stdout; \
@@ -114,5 +114,6 @@ inline void printtime(FILE* dbgstream){
                           } \
                         } while (0)
 
+#define LOG_PERROR(level, ...) LOG(level, __VA_ARGS__, strerror(errno))
 
 #endif
