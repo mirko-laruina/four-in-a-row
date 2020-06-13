@@ -56,6 +56,10 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
 
     msglen_t pt_len = sm->getCtSize();
     LOG(LOG_DEBUG, "Received SecureMessage of size %d", pt_len);
+    if (pt_len > MAX_SEC_MSG_SIZE){
+        LOG(LOG_ERR, "Message is too big");
+        return NULL;
+    }
 
     LOG(LOG_DEBUG, "Payload");
     DUMP_BUFFER_HEX_DEBUG(sm->getCt(), pt_len);
@@ -96,11 +100,17 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
 
     char buffer_pt[MAX_MSG_SIZE];
     int buf_len = m->write(buffer_pt);
+    
+    if (buf_len > MAX_SEC_MSG_SIZE){
+        LOG(LOG_ERR, "Message is too big: %s", m->getName().c_str());
+        return NULL;
+    }
 
     char* buffer_ct = (char*) malloc(MAX_MSG_SIZE);
     char* buffer_tag = (char*) malloc(TAG_SIZE);
 
     LOG(LOG_DEBUG, "Encrypting message of size %d", buf_len);
+    DUMP_BUFFER_HEX_DEBUG(buffer_pt, IV_SIZE);
 
     updateSendIV();
 

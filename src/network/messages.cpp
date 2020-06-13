@@ -274,7 +274,6 @@ msglen_t SecureMessage::read(char* buffer, msglen_t len){
     memcpy(ct, &buffer[i], ct_size);
     i += ct_size;
     memcpy(tag, &buffer[i], TAG_SIZE);
-    //TODO handle too long messages (malformed)
     return 0;
 }
 
