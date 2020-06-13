@@ -84,6 +84,14 @@ public:
     int replyPeerChallenge(string username, bool response, SecureHost* peerHost, uint16_t *listen_port);
 
     /**
+     * Signals the server that the user finished his game.
+     * 
+     * @returns 0 in case of success
+     * @returns 1 in case message could not be delivered
+     */
+    int signalGameEnd();
+
+    /**
      * Disconnects from the server
      */
     void disconnect();

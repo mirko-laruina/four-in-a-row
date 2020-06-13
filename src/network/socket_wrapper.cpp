@@ -200,29 +200,31 @@ int ClientSocketWrapper::connectServer(Host host){
     return ret;
 }
 
-ServerSocketWrapper::ServerSocketWrapper(){
+int ServerSocketWrapper::bindPort(){
     my_addr = make_my_sockaddr_in(0);
     int ret = bind_random_port(socket_fd, &my_addr);
     if (ret <= 0){
         LOG(LOG_FATAL, "Error in binding\n");
         perror("Error: ");
-        abort();       
+        return ret;
     }
 
     ret = listen(socket_fd, 10);
     if (ret != 0){
         LOG(LOG_ERR, "Error in setting socket to listen mode\n");
-        perror("Error: ");
-        abort();        
+        perror("Error: ");   
     }
+
+    return ret;
 }
 
-ServerSocketWrapper::ServerSocketWrapper(int port){
+int ServerSocketWrapper::bindPort(int port){
     my_addr = make_my_sockaddr_in(port);
     int ret = bind(socket_fd, (struct sockaddr*) &my_addr, sizeof(my_addr));
     if (ret != 0){
         LOG(LOG_FATAL, "Error in binding\n");
-        perror("Error: ");        
+        perror("Error: ");    
+        return ret;    
     }
 
     ret = listen(socket_fd, 10);
@@ -231,7 +233,7 @@ ServerSocketWrapper::ServerSocketWrapper(int port){
         perror("Error: ");        
     }
 
-    buf_idx = 0;
+    return ret;
 }
 
 SocketWrapper* ServerSocketWrapper::acceptClient(){

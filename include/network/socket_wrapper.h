@@ -157,18 +157,21 @@ private:
     struct sockaddr_in my_addr;
 public:
     /** 
-     * Initialize a new socket on a random port.
+     * Binds the socket to the requested port.
      * 
      * @param port the port you want to bind on 
+     * @returns 0 in case of success
+     * @returns 1 otherwise
      */
-    ServerSocketWrapper();
+    int bindPort(int port);
 
     /** 
-     * Initialize a new socket at the requested port.
+     * Binds the socket to a random port.
      * 
-     * @param port the port you want to bind on 
+     * @returns 0 in case of success
+     * @returns 1 otherwise 
      */
-    ServerSocketWrapper(int port);
+    int bindPort();
 
     /**
      * Accepts any incoming connection and returns the related SocketWrapper.

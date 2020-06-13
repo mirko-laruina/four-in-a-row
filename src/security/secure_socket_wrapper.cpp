@@ -508,12 +508,6 @@ ServerSecureSocketWrapper::ServerSecureSocketWrapper(X509* cert, EVP_PKEY* my_pr
     init(cert, my_priv_key, store);
 }
 
-ServerSecureSocketWrapper::ServerSecureSocketWrapper(X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store, int port){
-    ssw = new ServerSocketWrapper(port);
-    sw = ssw;
-    init(cert, my_priv_key, store);
-}
-
 SecureSocketWrapper *ServerSecureSocketWrapper::acceptClient()
 {
     return new SecureSocketWrapper(my_cert, my_priv_key, store, ssw->acceptClient());

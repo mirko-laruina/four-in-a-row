@@ -276,12 +276,22 @@ public:
      */
     ServerSecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store);
 
-    /** 
-     * Initialize a new socket at the requested port.
+   /** 
+     * Binds the socket to the requested port.
      * 
      * @param port the port you want to bind on 
+     * @returns 0 in case of success
+     * @returns 1 otherwise
      */
-    ServerSecureSocketWrapper(X509 *cert, EVP_PKEY *my_priv_key, X509_STORE *store, int port);
+    int bindPort(int port) { return ssw->bindPort(port); }
+
+    /** 
+     * Binds the socket to a random port.
+     * 
+     * @returns 0 in case of success
+     * @returns 1 otherwise 
+     */
+    int bindPort() { return ssw->bindPort(); }
 
     /**
      * Accepts any incoming connection and returns the related SocketWrapper.

@@ -91,8 +91,18 @@ int playWithPlayer(int turn, SecureSocketWrapper *sw){
 }
 
 SecureSocketWrapper* waitForPeer(int port, SecureHost host, X509* cert, EVP_PKEY* key, X509_STORE* store){
+    int ret;
+    
     ServerSecureSocketWrapper *ssw;
-    ssw = new ServerSecureSocketWrapper(cert, key, store, port);
+    ssw = new ServerSecureSocketWrapper(cert, key, store);
+
+    
+    ret = ssw->bindPort(port);
+    if (ret != 0){
+        cout<<"Could not bind to port: "<<ssw->getPort()<<endl;
+        delete ssw;
+        return NULL;
+    }
 
     cout<<"Waiting for connection on port: "<<ssw->getPort()<<endl;
 
@@ -103,7 +113,7 @@ SecureSocketWrapper* waitForPeer(int port, SecureHost host, X509* cert, EVP_PKEY
         return NULL;
     }
 
-    int ret = sw->handshakeServer();
+    ret = sw->handshakeServer();
 
     if (ret != 0){
         LOG(LOG_ERR, "Handshake error");

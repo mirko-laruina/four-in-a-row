@@ -156,11 +156,8 @@ ConnectionMode serverLobby(Server* server){
 
     string username = server->getPlayerUsername();
 
-    cout<<"Hello "<<username<<endl;
-
-    cout<<"Registering to "<<server->getHost().toString()<<" as "<<username<<endl;
-
     if (!server->isConnected()){
+        cout<<"Registering to "<<server->getHost().toString()<<" as "<<username<<endl;
         if (server->registerToServer() != 0){
             cout<<"Connection to "<<server->getHost().toString()<<" failed!"<<endl;
             return ConnectionMode(EXIT, CONNECTION_ERROR);

@@ -129,6 +129,11 @@ int Server::replyPeerChallenge(string username, bool response, SecureHost* peerH
     }
 }
 
+int Server::signalGameEnd(){
+    GameEndMessage msg;
+    return sw->sendMsg(&msg);
+}
+
 void Server::disconnect(){
     connected = false;
     sw->closeSocket();

@@ -438,7 +438,13 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    ServerSecureSocketWrapper server_sw(cert, key, store, port);
+    ServerSecureSocketWrapper server_sw(cert, key, store);
+
+    int ret = server_sw.bindPort(port);
+    if (ret != 0){
+        LOG(LOG_FATAL, "Error binding to port %d", port);
+        return 1;
+    }
 
     init_threads();
 
@@ -489,6 +495,7 @@ int main(int argc, char** argv){
                     if (u->getState() == DISCONNECTED){
                         LOG(LOG_DEBUG, "Received message from disconnected user with countRefs = %d", u->countRefs());
                         user_list.yield(u);
+                        FD_CLR(i, &active_fd_set); // ignore him
                         continue;
                     }
                     const char* u_addr_str = u->getSocketWrapper()

@@ -122,6 +122,7 @@ int main(int argc, char** argv){
             server = new Server(ucc.host, cert, key, store);   
         }
 
+        bool loopLobby = true;
         
         do{
             if (server != NULL){
@@ -135,6 +136,8 @@ int main(int argc, char** argv){
                         ret = playWithPlayer(MY_TURN, sw);
                     else 
                         ret = CONNECTION_ERROR;
+
+                    loopLobby = true;
                     break;
                 case CONNECT_TO_PEER:
                     sw = connectToPeer(ucc.host, cert, key, store);
@@ -142,22 +145,34 @@ int main(int argc, char** argv){
                         ret = playWithPlayer(THEIR_TURN, sw);
                     else 
                         ret = CONNECTION_ERROR;
+                    
+                    loopLobby = true;
                     break;
                 case SINGLE_PLAYER:
                     ret = playSinglePlayer();
+                    loopLobby = false;
                     break;
                 case EXIT:
                     ret = ucc.exit_code;
+                    loopLobby = false;
                     break;
                 case CONNECT_TO_SERVER:
                     ret = FATAL_ERROR;
+                    loopLobby = false;
                     break;
                 case CONTINUE:
                     ret = OK;
+                    loopLobby = true;
                     break;
             }
 
-        } while (server != NULL && server->isConnected());
+            if (loopLobby && ret == OK && 
+                server != NULL && server->isConnected()
+            ){
+                server->signalGameEnd();
+            }
+
+        } while (loopLobby && server != NULL && server->isConnected());
         if (server != NULL){
             delete server;
             server = NULL;
