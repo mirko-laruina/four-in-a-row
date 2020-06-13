@@ -19,6 +19,7 @@
 #include "connection_mode.h"
 #include "server_lobby.h"
 #include "security/crypto.h"
+#include "server.h"
 
 using namespace std;
 
@@ -50,6 +51,7 @@ struct ConnectionMode promptChooseConnection(){
     cout<<"To connect to a peer type: `peer host port path/to/peer_cert.pem`"<< endl;
     cout<<"To wait for a peer type: `peer listen_port path/to/peer_cert.pem`"<< endl;
     cout<<"To play offline type: `offline`"<< endl;
+    cout<<"To exit type: `exit`"<< endl;
 
     do {
         cout<<"> "<<flush;
@@ -72,12 +74,14 @@ struct ConnectionMode promptChooseConnection(){
                                         atoi(args.argv[2]), cert, 0);
                                         
         } else if (args.argc == 1 && strcmp(args.argv[0], "offline") == 0){
-            return ConnectionMode(SINGLE_PLAYER, 0);
+            return ConnectionMode(SINGLE_PLAYER);
             
-        } else if (args.argc == 0){
+        } else if (args.argc == 1 && strcmp(args.argv[0], "exit") == 0){
             cout << "Bye" << endl;
-            exit(0);
-        }else{
+            return ConnectionMode(EXIT, OK);
+        } else if (args.argc == 0){
+            return ConnectionMode(CONTINUE);
+        } else{
             cout << "Could not parse arguments: "<< args << endl;
         }
     } while (true);    
@@ -85,7 +89,8 @@ struct ConnectionMode promptChooseConnection(){
 
 
 int main(int argc, char** argv){
-    SecureSocketWrapper *sw;
+    SecureSocketWrapper *sw = NULL;
+    Server* server = NULL;
 
     if (argc < 5){
         print_help(argv[0]);
@@ -100,42 +105,64 @@ int main(int argc, char** argv){
 
     srand(time(NULL));
 
+    int ret;
+
     printWelcome();
     cout<<endl<<"Welcome to 4-in-a-row!"<<endl;
     cout<<"The rules of the game are simple: you win when you have 4 connected tokens along any direction."<<endl;
 
-    struct ConnectionMode ucc = promptChooseConnection();
+    do{
+        struct ConnectionMode ucc = promptChooseConnection();
 
-    if (ucc.connection_type == CONNECT_TO_SERVER){
-        ucc = serverLobby(ucc.host, cert, key, store);
-    }
+        if (ucc.connection_type == EXIT && ucc.exit_code == OK){
+            exit(0); // Bye
+        }
 
-    int ret;
-    switch(ucc.connection_type){
-        case WAIT_FOR_PEER:
-            sw = waitForPeer(ucc.listen_port, ucc.host, cert, key, store);
-            if (sw != NULL)
-                ret = playWithPlayer(MY_TURN, sw);
-            else 
-                ret = 1;
-            break;
-        case CONNECT_TO_PEER:
-            sw = connectToPeer(ucc.host, cert, key, store);
-            if (sw != NULL)
-                ret = playWithPlayer(THEIR_TURN, sw);
-            else 
-                ret = 1;
-            break;
-        case SINGLE_PLAYER:
-            ret = playSinglePlayer();
-            break;
-        case EXIT:
-            ret = ucc.exit_code;
-            break;
-        case CONNECT_TO_SERVER:
-            ret = 1;
-            break;
-    }
+        if (ucc.connection_type == CONNECT_TO_SERVER){
+            server = new Server(ucc.host, cert, key, store);   
+        }
+
+        
+        do{
+            if (server != NULL){
+                ucc = serverLobby(server);
+            }
+
+            switch(ucc.connection_type){
+                case WAIT_FOR_PEER:
+                    sw = waitForPeer(ucc.listen_port, ucc.host, cert, key, store);
+                    if (sw != NULL)
+                        ret = playWithPlayer(MY_TURN, sw);
+                    else 
+                        ret = CONNECTION_ERROR;
+                    break;
+                case CONNECT_TO_PEER:
+                    sw = connectToPeer(ucc.host, cert, key, store);
+                    if (sw != NULL)
+                        ret = playWithPlayer(THEIR_TURN, sw);
+                    else 
+                        ret = CONNECTION_ERROR;
+                    break;
+                case SINGLE_PLAYER:
+                    ret = playSinglePlayer();
+                    break;
+                case EXIT:
+                    ret = ucc.exit_code;
+                    break;
+                case CONNECT_TO_SERVER:
+                    ret = FATAL_ERROR;
+                    break;
+                case CONTINUE:
+                    ret = OK;
+                    break;
+            }
+
+        } while (server != NULL && server->isConnected());
+        if (server != NULL){
+            delete server;
+            server = NULL;
+        }
+    } while(ret != FATAL_ERROR);
 
     return ret;
 }

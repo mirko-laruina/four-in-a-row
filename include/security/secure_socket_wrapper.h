@@ -223,6 +223,11 @@ public:
      * Returns connected host.
      */
     SecureHost getConnectedHost() { return SecureHost(*getOtherAddr(), other_cert); }
+
+    /**
+     * Returns the certificate of this host
+     */
+    X509* getCert(){ return my_cert;}
 };
 
 /**

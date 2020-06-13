@@ -11,7 +11,8 @@
 #define SERVER_H
 
 #include "security/secure_socket_wrapper.h"
-#include "network/host.h"
+#include "security/secure_host.h"
+#include "security/crypto_utils.h"
 
 using namespace std;
 
@@ -22,6 +23,7 @@ class Server{
 private:
     SecureHost host;
     ClientSecureSocketWrapper* sw;
+    bool connected;
 public:
     /**
      * Constructor
@@ -38,10 +40,11 @@ public:
      * 
      * This function also connects the socket if not already done.
      * 
-     * @param username the username of the user connecting to the server
+     * Username is inferred from the certificate
+     * 
      * @return 0 in case of success, 1 in case of error
      */
-    int registerToServer(string username);
+    int registerToServer();
 
     /**
      * Returns the list of available users in the server as a comma separated 
@@ -81,9 +84,29 @@ public:
     int replyPeerChallenge(string username, bool response, SecureHost* peerHost, uint16_t *listen_port);
 
     /**
+     * Disconnects from the server
+     */
+    void disconnect();
+
+    /**
      * Returns the internal SocketWrapper.
      */
     SecureSocketWrapper* getSocketWrapper(){return sw;}
+
+    /**
+     * Returns the internal Host.
+     */
+    SecureHost getHost(){return host;}
+
+    /**
+     * Returns the player username from his certificate
+     */
+    string getPlayerUsername(){ return usernameFromCert(sw->getCert());}
+
+    /**
+     * Returns whether server is connected
+     */
+    bool isConnected(){ return connected; }
 };
 
 #endif // SERVER_H

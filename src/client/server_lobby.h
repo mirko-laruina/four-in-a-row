@@ -14,6 +14,7 @@
 #include "connection_mode.h"
 #include "security/secure_host.h"
 #include "security/crypto.h"
+#include "server.h"
 
 /**
  * Handles interaction among the user, the client and the remote server.
@@ -25,6 +26,6 @@
  * Once started, this function spawns a new connection to the given host and 
  * registers to it.
  */
-ConnectionMode serverLobby(SecureHost host, X509* cert, EVP_PKEY* my_priv_key, X509_STORE* store);
+ConnectionMode serverLobby(Server* server);
 
 #endif // SERVER_LOBBY_H
