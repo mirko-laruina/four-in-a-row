@@ -28,7 +28,7 @@ typedef uint32_t nonce_t;
 /**
  * @brief Print OpenSSL errors
  */
-#define handleErrorsNoAbort(level) { \
+#define handleErrorsNoException(level) { \
     LOG((level), "OpenSSL Exception"); \
     FILE* stream; \
     if (level < LOG_ERR) \
@@ -39,11 +39,11 @@ typedef uint32_t nonce_t;
 }
 
 /**
- * @brief Print OpenSSL errors and abort
+ * @brief Print OpenSSL errors and throw exception
  */
 #define handleErrors() { \
-    handleErrorsNoAbort(LOG_ERR) \
-    abort(); \
+    handleErrorsNoException(LOG_ERR); \
+    throw "OpenSSL Error"; \
 }
 
 /**

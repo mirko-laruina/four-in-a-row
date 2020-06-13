@@ -298,80 +298,86 @@ bool handleMessage(User* user, Message* raw_msg){
 
     user->lock();
 
-    Message* msg = user->getSocketWrapper()->handleMsg(raw_msg);
+    try{
 
-    LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
-        user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
+        Message* msg = user->getSocketWrapper()->handleMsg(raw_msg);
 
-    switch(user->getState()){
-        case JUST_CONNECTED:
-            switch(msg->getType()){
-                case CLIENT_HELLO:
-                    res = handleClientHelloMessage(user,
-                        dynamic_cast<ClientHelloMessage*>(msg));
-                    break;
-                case CLIENT_VERIFY:
-                    res = handleClientVerifyMessage(user,
-                        dynamic_cast<ClientVerifyMessage*>(msg));
-                    break;
-                case CERT_REQ:
-                    res = handleCertificateRequestMessage(user,
-                        dynamic_cast<CertificateRequestMessage*>(msg));
-                // TODO: handle cert request
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        case SECURELY_CONNECTED:
-            switch(msg->getType()){
-                case REGISTER:
-                    res = handleRegisterMessage(user,        
-                        dynamic_cast<RegisterMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        case AVAILABLE:
-            switch(msg->getType()){
-                case CHALLENGE:
-                    res = handleChallengeMessage(user,        
-                        dynamic_cast<ChallengeMessage*>(msg));
-                    break;
-                case USERS_LIST_REQ:
-                    res = handleUsersListRequestMessage(user,
-                        dynamic_cast<UsersListRequestMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        case CHALLENGED: 
-            switch(msg->getType()){
-                case CHALLENGE_RESP:
-                    res = handleChallengeResponseMessage(user,
-                        dynamic_cast<ChallengeResponseMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        case PLAYING: 
-            switch(msg->getType()){
-                case GAME_END:
-                    res = handleGameEndMessage(user,
-                        dynamic_cast<GameEndMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        default:
-            LOG(LOG_ERR, "User %s is in unrecognized state %d", 
-                user->getUsername().c_str(), (int) user->getState());
+        LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
+            user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
+
+        switch(user->getState()){
+            case JUST_CONNECTED:
+                switch(msg->getType()){
+                    case CLIENT_HELLO:
+                        res = handleClientHelloMessage(user,
+                            dynamic_cast<ClientHelloMessage*>(msg));
+                        break;
+                    case CLIENT_VERIFY:
+                        res = handleClientVerifyMessage(user,
+                            dynamic_cast<ClientVerifyMessage*>(msg));
+                        break;
+                    case CERT_REQ:
+                        res = handleCertificateRequestMessage(user,
+                            dynamic_cast<CertificateRequestMessage*>(msg));
+                    // TODO: handle cert request
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case SECURELY_CONNECTED:
+                switch(msg->getType()){
+                    case REGISTER:
+                        res = handleRegisterMessage(user,        
+                            dynamic_cast<RegisterMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case AVAILABLE:
+                switch(msg->getType()){
+                    case CHALLENGE:
+                        res = handleChallengeMessage(user,        
+                            dynamic_cast<ChallengeMessage*>(msg));
+                        break;
+                    case USERS_LIST_REQ:
+                        res = handleUsersListRequestMessage(user,
+                            dynamic_cast<UsersListRequestMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case CHALLENGED: 
+                switch(msg->getType()){
+                    case CHALLENGE_RESP:
+                        res = handleChallengeResponseMessage(user,
+                            dynamic_cast<ChallengeResponseMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case PLAYING: 
+                switch(msg->getType()){
+                    case GAME_END:
+                        res = handleGameEndMessage(user,
+                            dynamic_cast<GameEndMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            default:
+                LOG(LOG_ERR, "User %s is in unrecognized state %d", 
+                    user->getUsername().c_str(), (int) user->getState());
+        }
+
+        delete msg;
+    } catch(const char* error_msg){
+        LOG(LOG_ERR, "Caught error: %s", error_msg);
+        res = false;
     }
-
-    delete msg;
 
     user->unlock();
     return res;

@@ -125,51 +125,57 @@ int main(int argc, char** argv){
         bool loopLobby = true;
         
         do{
-            if (server != NULL){
-                ucc = serverLobby(server);
-            }
+            try{
+                if (server != NULL){
+                    ucc = serverLobby(server);
+                }
 
-            switch(ucc.connection_type){
-                case WAIT_FOR_PEER:
-                    sw = waitForPeer(ucc.listen_port, ucc.host, cert, key, store);
-                    if (sw != NULL)
-                        ret = playWithPlayer(MY_TURN, sw);
-                    else 
-                        ret = CONNECTION_ERROR;
+                switch(ucc.connection_type){
+                    case WAIT_FOR_PEER:
+                        sw = waitForPeer(ucc.listen_port, ucc.host, cert, key, store);
+                        if (sw != NULL)
+                            ret = playWithPlayer(MY_TURN, sw);
+                        else 
+                            ret = CONNECTION_ERROR;
 
-                    loopLobby = true;
-                    break;
-                case CONNECT_TO_PEER:
-                    sw = connectToPeer(ucc.host, cert, key, store);
-                    if (sw != NULL)
-                        ret = playWithPlayer(THEIR_TURN, sw);
-                    else 
-                        ret = CONNECTION_ERROR;
-                    
-                    loopLobby = true;
-                    break;
-                case SINGLE_PLAYER:
-                    ret = playSinglePlayer();
-                    loopLobby = false;
-                    break;
-                case EXIT:
-                    ret = ucc.exit_code;
-                    loopLobby = false;
-                    break;
-                case CONNECT_TO_SERVER:
-                    ret = FATAL_ERROR;
-                    loopLobby = false;
-                    break;
-                case CONTINUE:
-                    ret = OK;
-                    loopLobby = true;
-                    break;
-            }
+                        loopLobby = true;
+                        break;
+                    case CONNECT_TO_PEER:
+                        sw = connectToPeer(ucc.host, cert, key, store);
+                        if (sw != NULL)
+                            ret = playWithPlayer(THEIR_TURN, sw);
+                        else 
+                            ret = CONNECTION_ERROR;
+                        
+                        loopLobby = true;
+                        break;
+                    case SINGLE_PLAYER:
+                        ret = playSinglePlayer();
+                        loopLobby = false;
+                        break;
+                    case EXIT:
+                        ret = ucc.exit_code;
+                        loopLobby = false;
+                        break;
+                    case CONNECT_TO_SERVER:
+                        ret = FATAL_ERROR;
+                        loopLobby = false;
+                        break;
+                    case CONTINUE:
+                        ret = OK;
+                        loopLobby = true;
+                        break;
+                }
 
-            if (loopLobby && ret == OK && 
-                server != NULL && server->isConnected()
-            ){
-                server->signalGameEnd();
+                if (loopLobby && ret == OK && 
+                    server != NULL && server->isConnected()
+                ){
+                    server->signalGameEnd();
+                }
+            } catch(const char* error_msg){
+                LOG(LOG_ERR, "Caught error: %s", error_msg);
+                ret = GENERIC_ERROR;
+                loopLobby = false;
             }
 
         } while (loopLobby && server != NULL && server->isConnected());

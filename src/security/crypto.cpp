@@ -368,7 +368,7 @@ bool verify_peer_cert(X509_STORE *store, X509 *cert)
     } else if (ret == 0){
         return false;
     } else {
-        handleErrorsNoAbort(LOG_DEBUG);
+        handleErrorsNoException(LOG_DEBUG);
         return false;
     }
 }
