@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <errno.h>
 
 #define TZ_OFFSET (2)
 

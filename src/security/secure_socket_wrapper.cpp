@@ -67,7 +67,10 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
     DUMP_BUFFER_HEX_DEBUG(sm->getTag(), TAG_SIZE);
 
     char *buffer_pt = (char*) malloc(pt_len);
-
+    if (!buffer_pt){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return NULL;
+    }
     updateRecvIV();
 
     int ret = aes_gcm_decrypt(sm->getCt(), pt_len, NULL, 0,
@@ -108,6 +111,11 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
 
     char* buffer_ct = (char*) malloc(MAX_MSG_SIZE);
     char* buffer_tag = (char*) malloc(TAG_SIZE);
+
+    if (!buffer_ct || !buffer_tag){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return NULL;
+    }
 
     LOG(LOG_DEBUG, "Encrypting message of size %d", buf_len);
     DUMP_BUFFER_HEX_DEBUG(buffer_pt, IV_SIZE);
@@ -380,6 +388,10 @@ int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
 
 char* SecureSocketWrapper::makeSignature(const char* role){
     char* ds = (char*) malloc(DS_SIZE);
+    if (!ds){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return NULL;
+    }
 
     size_t msglen = buildMsgToSign(role, msg_to_sign_buf);
     if (msglen <= 0){

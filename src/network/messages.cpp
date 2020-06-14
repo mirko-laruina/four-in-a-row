@@ -338,6 +338,11 @@ msglen_t ServerHelloMessage::write(char* buffer){
 }
 
 msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
+    ds = (char*) malloc(DS_SIZE);
+    if (!ds){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return 1;
+    }
     int i = 1;
     memcpy(&nonce, &buffer[i], sizeof(nonce));
     i += sizeof(nonce);
@@ -345,7 +350,6 @@ msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
     i += MAX_USERNAME_LENGTH + 1;
     other_id = readUsername(&buffer[i], len-i);
     i += MAX_USERNAME_LENGTH + 1;
-    ds = (char*) malloc(DS_SIZE);
     memcpy(ds, &buffer[i], DS_SIZE);
     i += DS_SIZE;
     int ret = buf2pkey(&buffer[i], len-i, &eph_key);
@@ -368,8 +372,12 @@ msglen_t ClientVerifyMessage::write(char* buffer){
 }
 
 msglen_t ClientVerifyMessage::read(char* buffer, msglen_t len){
-    int i = 1;
     ds = (char*) malloc(DS_SIZE);
+    if (!ds){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return 1;
+    }
+    int i = 1;
     memcpy(ds, &buffer[i], DS_SIZE);
     i += DS_SIZE;
     return 0;

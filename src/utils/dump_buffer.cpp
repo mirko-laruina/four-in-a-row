@@ -23,6 +23,10 @@ void dump_buffer_hex(char* buffer, int len, int log_level, const char* name){
   int n_rows = (len+ROW-1)/ROW;
 
   str = (char*) malloc(n_rows*(3*ROW + 4 + ROW + 1)+1);
+  if (!str){
+    LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+    return;
+  }
 
   const char* col_sep = "    ";
   const char* row_sep = "\n";

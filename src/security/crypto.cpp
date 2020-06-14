@@ -217,8 +217,9 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, char **shared_key)
     // "Dummy" derivation to extract key len
     EVP_PKEY_derive(derivation_ctx, NULL, &shared_key_len);
     *shared_key = (char *)malloc(shared_key_len);
-    if (!shared_key)
+    if (!*shared_key)
     {
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
         handleErrors();
     }
 
@@ -378,7 +379,6 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
 {
     const EVP_MD *md = EVP_sha256();
     unsigned int hash_size = EVP_MD_size(md);
-    hmac = (char *)malloc(hash_size);
 
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_Init_ex(ctx, key, keylen, md, NULL);
@@ -451,6 +451,10 @@ void hkdf(char *key, size_t key_len,
     // label is a string, we remove the termination null char
     size_t info_len = sizeof(nonce_t) * 2 + strlen(label);
     char *info = (char *)malloc(info_len);
+    if (!info){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %ss");
+        throw "Malloc error";
+    }
     char *info_buf = info;
     strcpy((char *)info_buf, label);
     info_buf += strlen(label);
