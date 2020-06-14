@@ -38,9 +38,7 @@ void printAvailableActions(){
 }
 
 int doAction(Args args, Server *server, SecureHost* peer_host){
-    ostringstream os;
-    os << args;
-    LOG(LOG_DEBUG, "Args: %s", os.str().c_str());
+    LOG(LOG_DEBUG, "Args: %s", args.c_str());
     if (args.getArgc() == 1 && strcmp(args.getArgv(0), "exit") == 0){
         return -2;
     } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "list") == 0){
@@ -86,6 +84,7 @@ int handleReceivedChallenge(Server *server,
     do{
         cout<<"> "<<flush;
         Args args(cin);
+        LOG(LOG_DEBUG, "Args: %s", args.c_str());
         if (args.getArgc() == 1 && strcmp(args.getArgv(0), "y") == 0){
             response = true;
             break;

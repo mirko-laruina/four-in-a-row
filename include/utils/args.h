@@ -67,6 +67,11 @@ public:
         else
             return NULL;
     }
+
+    /**
+     * Returns user friendly content as a C string.
+     */
+    const char* c_str();
 };
 
 #endif //PARSE_ARGS_H

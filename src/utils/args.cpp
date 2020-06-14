@@ -10,6 +10,7 @@
  */
 
 #include "utils/args.h"
+#include <sstream>
 
 using namespace std;
 
@@ -55,4 +56,10 @@ ostream& operator<<(ostream& os, const Args& a){
 
     os << "]";
     return os;
+}
+
+const char* Args::c_str(){
+    ostringstream os;
+    os << *this;
+    return os.str().c_str();
 }
