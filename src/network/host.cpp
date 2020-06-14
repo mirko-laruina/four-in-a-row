@@ -12,7 +12,7 @@
 #include "network/host.h"
 #include "network/inet_utils.h"
 
-Host::Host(char* ip, int port){
+Host::Host(const char* ip, int port){
     addr = make_sv_sockaddr_in(ip, port);
 }
 string Host::toString(){      

@@ -24,7 +24,6 @@
 using namespace std;
 
 static const char players[] = {'X', 'O'};
-static char in_buffer[256];
 
 /**
  * Prints command usage information.
@@ -55,33 +54,35 @@ struct ConnectionMode promptChooseConnection(){
 
     do {
         cout<<"> "<<flush;
-        cin.getline(in_buffer, sizeof(in_buffer));
-        Args args(in_buffer);
-        if (args.argc == 3 && strcmp(args.argv[0], "peer") == 0){
-            X509* cert = load_cert_file(args.argv[2]);
+        Args args(cin);
+        if (args.getArgc() == 3 && strcmp(args.getArgv(0), "peer") == 0){
+            X509* cert = load_cert_file(args.getArgv(2));
             char dummy_ip[] = "127.0.0.1";
             return ConnectionMode(WAIT_FOR_PEER, dummy_ip, 
-                                0, cert, atoi(args.argv[1]));
+                                0, cert, atoi(args.getArgv(1)));
 
-        } else if (args.argc == 4 && strcmp(args.argv[0], "peer") == 0){
-            X509* cert = load_cert_file(args.argv[3]);
-            return ConnectionMode(CONNECT_TO_PEER, args.argv[1], 
-                                        atoi(args.argv[2]), cert, 0);
+        } else if (args.getArgc() == 4 && strcmp(args.getArgv(0), "peer") == 0){
+            X509* cert = load_cert_file(args.getArgv(3));
+            return ConnectionMode(CONNECT_TO_PEER, args.getArgv(1), 
+                                        atoi(args.getArgv(2)), cert, 0);
                                         
-        } else if (args.argc == 4 && strcmp(args.argv[0], "server") == 0){
-            X509* cert = load_cert_file(args.argv[3]);
-            return ConnectionMode(CONNECT_TO_SERVER, args.argv[1], 
-                                        atoi(args.argv[2]), cert, 0);
+        } else if (args.getArgc() == 4 && strcmp(args.getArgv(0), "server") == 0){
+            X509* cert = load_cert_file(args.getArgv(3));
+            return ConnectionMode(CONNECT_TO_SERVER, args.getArgv(1), 
+                                        atoi(args.getArgv(2)), cert, 0);
                                         
-        } else if (args.argc == 1 && strcmp(args.argv[0], "offline") == 0){
+        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "offline") == 0){
             return ConnectionMode(SINGLE_PLAYER);
             
-        } else if (args.argc == 1 && strcmp(args.argv[0], "exit") == 0){
+        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "exit") == 0){
             cout << "Bye" << endl;
             return ConnectionMode(EXIT, OK);
-        } else if (args.argc == 0){
+        } else if (args.getArgc() == 0){
             return ConnectionMode(CONTINUE);
-        } else{
+        } else if (args.getArgc() == -1){ // EOF
+            cout << "Bye" << endl;
+            return ConnectionMode(EXIT, OK);
+        }else{
             cout << "Could not parse arguments: "<< args << endl;
         }
     } while (true);    

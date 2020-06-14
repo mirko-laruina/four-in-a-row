@@ -262,7 +262,7 @@ void get_rand(char* buffer, int bytes){
  * @param file_name     file name of the certificate
  * @return X509*        the certificate ptr, NULL if not read correctly
  */
-X509 *load_cert_file(char *file_name)
+X509 *load_cert_file(const char *file_name)
 {
     FILE *cert_file = fopen(file_name, "r");
     if (!cert_file)
@@ -281,14 +281,14 @@ X509 *load_cert_file(char *file_name)
  * @param password      key password
  * @return X509*        the key ptr, NULL if not read correctly
  */
-EVP_PKEY *load_key_file(char *file_name, char* password)
+EVP_PKEY *load_key_file(const char *file_name, const char* password)
 {
     FILE *key_file = fopen(file_name, "r");
     if (!key_file)
     {
         return NULL;
     }
-    EVP_PKEY *key = PEM_read_PrivateKey(key_file, NULL, NULL, password);
+    EVP_PKEY *key = PEM_read_PrivateKey(key_file, NULL, NULL, (void*) password);
     fclose(key_file);
     return key;
 }
@@ -299,7 +299,7 @@ EVP_PKEY *load_key_file(char *file_name, char* password)
  * @param file_name    file name
  * @return X509_CRL*   the CRL, NULL if not read correctly
  */
-X509_CRL *load_crl_file(char *file_name)
+X509_CRL *load_crl_file(const char *file_name)
 {
     FILE *crl_file = fopen(file_name, "r");
     if (!crl_file)

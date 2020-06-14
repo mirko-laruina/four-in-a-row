@@ -86,9 +86,9 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
     Message *m = readMessage(buffer_pt, pt_len);
 
     if (m != NULL){
-        LOG(LOG_DEBUG, "Decrypted message of type %s", m->getName().c_str());
+        LOG(LOG_INFO, "Decrypted message of type %s", m->getName().c_str());
     } else{
-        LOG(LOG_DEBUG, "Malformed message");
+        LOG(LOG_WARN, "Malformed message");
     }
     return m;
 }
@@ -99,7 +99,7 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
         return NULL;
 
     char buffer_pt[MAX_MSG_SIZE];
-    int buf_len = m->write(buffer_pt);
+    msglen_t buf_len = m->write(buffer_pt);
     
     if (buf_len > MAX_SEC_MSG_SIZE){
         LOG(LOG_ERR, "Message is too big: %s", m->getName().c_str());

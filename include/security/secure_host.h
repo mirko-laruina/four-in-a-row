@@ -45,7 +45,7 @@ public:
      * @param ip the IP address the remote host
      * @param port the port the remote host
      */
-    SecureHost(char* ip, int port, X509* cert) : Host(ip, port), cert(cert) {}
+    SecureHost(const char* ip, int port, X509* cert) : Host(ip, port), cert(cert) {}
 
     /** Returns the X509 certificate */
     X509* getCert(){return cert;}

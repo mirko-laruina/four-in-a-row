@@ -451,7 +451,7 @@ private:
     char* ds;
 
 public:
-    ServerHelloMessage(){}
+    ServerHelloMessage() : eph_key(NULL) {}
     ServerHelloMessage(EVP_PKEY* eph_key, nonce_t nonce, string my_id, string other_id, char* ds) 
         : eph_key(eph_key), nonce(nonce), my_id(my_id), other_id(other_id), ds(ds) {}
     ~ServerHelloMessage();

@@ -107,7 +107,7 @@ inline void printtime(FILE* dbgstream){
                             fprintf(dbgstream, "[%-5d]", (int) getpid()); \
                             printtime(dbgstream); \
                             snprintf(where, 50, "[%s:%d]", __FILE__, __LINE__); \
-                            fprintf(dbgstream, " %-25s ", where); \
+                            fprintf(dbgstream, "%-25s ", where); \
                             fprintf(dbgstream, __VA_ARGS__); \
                             fprintf(dbgstream, "\033[0m\n"); \
                             fflush(dbgstream); \

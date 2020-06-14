@@ -46,7 +46,7 @@ public:
      * @param ip the IP address the remote host
      * @param port the port the remote host
      */
-    Host(char* ip, int port);
+    Host(const char* ip, int port);
 
     /** Returns the inet address of the host */
     struct sockaddr_in getAddress(){return addr;}

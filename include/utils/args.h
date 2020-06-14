@@ -14,6 +14,7 @@
 #include <string>
 #include <list>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -21,19 +22,16 @@ using namespace std;
  * Utility class that parses an input line into a list of arguments (argc, argv)
  */
 class Args {
-public:
-    int argc;
-    char **argv;
+private:
+    int status;
+    vector<string> argv;
 
+    void parseLine(string s);
+public:
     /**
      * Default constructor
      */
-    Args() {}
-
-    /**
-     * Convert a list of strings into the argc,argv format
-     */
-    Args(list<string> l);
+    Args() : status(0) {}
 
     /**
      * Constructor that parses the given input line
@@ -41,9 +39,9 @@ public:
     Args(char* line);
 
     /**
-     * Frees memory occupied by argv items and argv itself.
+     * Constructor that reads from the given input stream.
      */
-    ~Args();
+    Args(std::istream &is);
 
     /**
      * Operator overload for printing the arguments with cout
@@ -51,6 +49,24 @@ public:
      * Format: ["arg1", "arg2"]
      */
     friend std::ostream& operator<<(std::ostream& os, const Args& b);
+
+    /**
+     * Returns argument count.
+     * 
+     * @returns >=0 argument count
+     * @retuns -1 error reading stream (may be caused by EOF)
+     */
+    int getArgc(){ return status == 0 ? argv.size() : -1;}
+
+    /**
+     * Returns nth argument
+     */
+    const char* getArgv(unsigned int i) { 
+        if (status == 0 && i < argv.size()) 
+            return argv.at(i).c_str();
+        else
+            return NULL;
+    }
 };
 
 #endif //PARSE_ARGS_H

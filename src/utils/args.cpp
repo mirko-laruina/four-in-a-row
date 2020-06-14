@@ -13,47 +13,43 @@
 
 using namespace std;
 
-Args::Args(char* line){
+void Args::parseLine(string s){
     string delimiter = " ";
     size_t pos = 0;
     string token;
-    string s(line);
-    list<string> token_list;
     
     while ((pos = s.find(delimiter)) != string::npos) {
         token = s.substr(0, pos);
-        token_list.push_back(token);
+        argv.push_back(token);
         s.erase(0, pos + delimiter.length());
     }
     
     if (!s.empty()){
-        token_list.push_back(s);
-    }
-
-    argc = token_list.size();
-    argv = (char**) malloc(sizeof(char*) * token_list.size());
-    int i = 0;
-    for (list<string>::iterator it = token_list.begin(); 
-            it != token_list.end(); ++it, ++i){
-        argv[i] = (char*) malloc(it->size()+1);
-        it->copy(argv[i], it->size());
-        argv[i][it->size()] = '\0';
+        argv.push_back(s);
     }
 }
 
-Args::~Args(){
-    for (int i=0; i < argc; i++){
-        free(argv[i]);
+Args::Args(char* line){
+    parseLine(string(line));
+}
+
+Args::Args(istream &is){
+    string line;
+    getline(is, line);
+    if (!is){
+        status = 1;
+    } else {
+        status = 0;
+        parseLine(line);
     }
-    free(argv);
 }
 
 ostream& operator<<(ostream& os, const Args& a){
     os << "[";
 
-    for (int i=0; i < a.argc; i++){
-        os << a.argv[i];
-        if (i != a.argc-1)
+    for (vector<string>::const_iterator it = a.argv.begin(); it != a.argv.end(); it++){
+        os << *it;
+        if (it != a.argv.end()-1)
             os << ",";
     }
 

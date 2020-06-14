@@ -39,7 +39,7 @@ struct ConnectionMode {
         enum ExitCode exit_code;
     };
     ConnectionMode(enum ConnectionType connection_type, 
-                        char* ip, int port, X509* cert, uint16_t listen_port) 
+                        const char* ip, int port, X509* cert, uint16_t listen_port) 
             : connection_type(connection_type), host(SecureHost(ip, port,cert)), listen_port(listen_port) {}
     ConnectionMode(enum ConnectionType connection_type, SecureHost host, uint16_t listen_port) 
             : connection_type(connection_type), host(host), listen_port(listen_port) {}
