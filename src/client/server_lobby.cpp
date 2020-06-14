@@ -86,10 +86,10 @@ int handleReceivedChallenge(Server *server,
     do{
         cout<<"> "<<flush;
         Args args(cin);
-        if (args.getArgc() == 1 && strcmp(args.getArgv(0), "y")){
+        if (args.getArgc() == 1 && strcmp(args.getArgv(0), "y") == 0){
             response = true;
             break;
-        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "n")){
+        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "n") == 0){
             response = false;
             break;
         } else if (args.getArgc() < 0){ // EOF
