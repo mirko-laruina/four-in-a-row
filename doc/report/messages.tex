@@ -1,10 +1,36 @@
 \section{Messages}
-\subsection{\texttt{REGISTER}}
+\subsection{\texttt{SECURE MESSAGE}}
+Carries an encrypted message.
+\begin{figure}[h]
+	\centering
+	\begin{bytefield}[bitwidth=1.1em]{32}
+		\bitheader{0-34} \\
+		\bitbox{2}{\texttt{len}} 
+		& \bitbox{1}{\texttt{0}} 
+		& \bitbox{16}{\texttt{ciphertext}}
+		& \bitbox{16}{\texttt{tag}}
+	\end{bytefield}
+\end{figure}
+\begin{itemize}
+	\item len: length of the message
+	\item 0: type of the message (SECURE\_MESSAGE)
+	\item ciphertext: encrypted message
+	\item tag: aes\_gcm verification tag
+\end{itemize}
 
-\begin{bytefield}[bitwidth=1.1em]{32}
-  \bitheader{0-19} \\
-  \bitbox{2}{\texttt{N}} 
-  & \bitbox{1}{\texttt{0}} 
-  & \bitbox{16}{\texttt{username (min 3, max 16)}}
-  & \bitbox{1}{\texttt{0}}
-\end{bytefield}
+
+
+\subsection{\texttt{REGISTER}}
+Registers user to the server.
+\begin{figure}[h]
+	\centering
+	\begin{bytefield}[bitwidth=1.1em]{16}
+		\bitheader{0-19} \\
+		\bitbox{2}{\texttt{len}} 
+		& \bitbox{1}{\texttt{0}} 
+		& \bitbox{16}{\texttt{username (min 3, max 16)}}
+		& \bitbox{1}{\texttt{0}}
+	\end{bytefield}
+\end{figure}
+
+
