@@ -17,7 +17,7 @@
 #include <map>
 
 #include "logging.h"
-#include "network/socket_wrapper.h"
+#include "security/secure_socket_wrapper.h"
 #include "network/host.h"
 
 /** Prevent cross references between headers */
@@ -32,7 +32,7 @@ class UserList;
  * PLAYING: the user is currently playing with another user.
  * DISCONNECTED: the user is disconnected.
  */
-enum UserState {JUST_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
+enum UserState {JUST_CONNECTED, SECURELY_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
 
 /**
  * Class representing a user.
@@ -46,7 +46,7 @@ enum UserState {JUST_CONNECTED, AVAILABLE, CHALLENGED, PLAYING, DISCONNECTED};
 class User{
     friend UserList;
 private:
-    SocketWrapper *sw;
+    SecureSocketWrapper *sw;
     UserState state;
     string username;
     string opponent_username;
@@ -79,7 +79,7 @@ public:
      * The user is put in the JUST_CONNECTED STATE, username is set to empty
      * string.
      */
-    User(SocketWrapper *sw) 
+    User(SecureSocketWrapper *sw) 
             : sw(sw), state(JUST_CONNECTED), 
                 username(""), opponent_username(""), 
                 references(0) {
@@ -119,7 +119,7 @@ public:
     /**
      * Returns the socket wrapper
      */
-    SocketWrapper* getSocketWrapper(){return sw;}
+    SecureSocketWrapper* getSocketWrapper(){return sw;}
 
     /**
      * Returns the current state of the user 
@@ -129,7 +129,11 @@ public:
     /**
      * Sets the current state of the user
      */
-    void setState(UserState state){this->state=state;}
+    void setState(UserState state){
+        LOG(LOG_DEBUG, "User %s (%d) is now in state %d", 
+                username.c_str(), sw->getDescriptor(), (int)state); 
+        this->state=state;
+    }
 
     /**
      * Returns the username of the opponent

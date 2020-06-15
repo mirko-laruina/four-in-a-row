@@ -66,7 +66,7 @@ int bind_random_port(int socket, struct sockaddr_in *addr);
  * @param port    port of the server
  * @return        sockaddr_in structure for the given server
  */
-struct sockaddr_in make_sv_sockaddr_in(char* ip, int port);
+struct sockaddr_in make_sv_sockaddr_in(const char* ip, int port);
 
 /**
  * Makes sockaddr_in structure of this host.

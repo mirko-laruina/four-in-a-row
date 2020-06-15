@@ -10,8 +10,9 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "network/socket_wrapper.h"
-#include "network/host.h"
+#include "security/secure_socket_wrapper.h"
+#include "security/secure_host.h"
+#include "security/crypto_utils.h"
 
 using namespace std;
 
@@ -20,13 +21,14 @@ using namespace std;
  */
 class Server{
 private:
-    Host host;
-    ClientSocketWrapper* sw;
+    SecureHost host;
+    ClientSecureSocketWrapper* sw;
+    bool connected;
 public:
     /**
      * Constructor
      */
-    Server(Host host) : host(host) {sw = new ClientSocketWrapper();}
+    Server(SecureHost host, X509* cert, EVP_PKEY* key, X509_STORE* store) : host(host) {sw = new ClientSecureSocketWrapper(cert, key, store);}
 
     /** 
      * Destructor
@@ -38,10 +40,11 @@ public:
      * 
      * This function also connects the socket if not already done.
      * 
-     * @param username the username of the user connecting to the server
+     * Username is inferred from the certificate
+     * 
      * @return 0 in case of success, 1 in case of error
      */
-    int registerToServer(string username);
+    int registerToServer();
 
     /**
      * Returns the list of available users in the server as a comma separated 
@@ -64,7 +67,7 @@ public:
      * @returns -1 in case of refused challenge
      * @returns 1  in case of connection failures
      */
-    int challengePeer(string username, Host* peerHost);
+    int challengePeer(string username, SecureHost* peerHost);
 
     /**
      * Replies to the challenge of another user.
@@ -78,12 +81,40 @@ public:
      * @returns -1 in case of refused challenge
      * @returns 1  in case of connection failures
      */
-    int replyPeerChallenge(string username, bool response, Host* peerHost, uint16_t *listen_port);
+    int replyPeerChallenge(string username, bool response, SecureHost* peerHost, uint16_t *listen_port);
+
+    /**
+     * Signals the server that the user finished his game.
+     * 
+     * @returns 0 in case of success
+     * @returns 1 in case message could not be delivered
+     */
+    int signalGameEnd();
+
+    /**
+     * Disconnects from the server
+     */
+    void disconnect();
 
     /**
      * Returns the internal SocketWrapper.
      */
-    SocketWrapper* getSocketWrapper(){return sw;}
+    SecureSocketWrapper* getSocketWrapper(){return sw;}
+
+    /**
+     * Returns the internal Host.
+     */
+    SecureHost getHost(){return host;}
+
+    /**
+     * Returns the player username from his certificate
+     */
+    string getPlayerUsername(){ return usernameFromCert(sw->getCert());}
+
+    /**
+     * Returns whether server is connected
+     */
+    bool isConnected(){ return connected; }
 };
 
 #endif // SERVER_H

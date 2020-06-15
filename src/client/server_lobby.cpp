@@ -18,7 +18,8 @@
 #include <sstream>
 
 #include "utils/args.h"
-#include "network/socket_wrapper.h"
+#include "security/secure_socket_wrapper.h"
+#include "security/crypto_utils.h"
 
 #include "server_lobby.h"
 #include "server.h"
@@ -36,20 +37,21 @@ void printAvailableActions(){
     cout<<"NB: you cannot receive challenges if you are challenging another user"<< endl;
 }
 
-int doAction(Args args, Server *server, Host* peer_host){
-    ostringstream os;
-    os << args;
-    LOG(LOG_DEBUG, "Args: %s", os.str().c_str());
-    if (args.argc == 1 && strcmp(args.argv[0], "exit") == 0){
+int doAction(Args args, Server *server, SecureHost* peer_host){
+    LOG(LOG_DEBUG, "Args: %s", args.c_str());
+    if (args.getArgc() == 1 && strcmp(args.getArgv(0), "exit") == 0){
         return -2;
-    } else if (args.argc == 1 && strcmp(args.argv[0], "list") == 0){
+    } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "list") == 0){
         cout<<"Retrieving the list of users..."<<endl;
-        string userlist = server->getUserList(); // TODO error management
+        string userlist = server->getUserList();
+        if (userlist.empty()){
+            return 1;
+        }
         cout<<"Online users: "<<userlist<<endl;
         return 0;
-    } else if (args.argc == 2 && strcmp(args.argv[0], "challenge") == 0){
-        cout<<"Sending challenge to "<<args.argv[1]<<" and waiting for response..."<<endl;
-        string username(args.argv[1]);
+    } else if (args.getArgc() == 2 && strcmp(args.getArgv(0), "challenge") == 0){
+        cout<<"Sending challenge to "<<args.getArgv(1)<<" and waiting for response..."<<endl;
+        string username(args.getArgv(1));
         int ret = server->challengePeer(username, peer_host);
         switch (ret){ 
             case -1: // refused
@@ -62,7 +64,9 @@ int doAction(Args args, Server *server, Host* peer_host){
                 cout<<"Error connecting to server!"<<endl;
                 return 1;
         } 
-    } else{
+    } else if (args.getArgc() < 0) {
+        return -2; //exit
+    } else {
         return 0;
     }
 
@@ -70,57 +74,119 @@ int doAction(Args args, Server *server, Host* peer_host){
 
 int handleReceivedChallenge(Server *server, 
                             ChallengeForwardMessage* msg, 
-                            Host* peer_host,
+                            SecureHost* peer_host,
                             uint16_t* listen_port){
-    char in_buffer[2];
     cout<<endl<<"You received a challenge from "<<msg->getUsername()<<endl;
     cout<<"Do you want to accept? (y/n)";
+
+    bool response;
+
     do{
         cout<<"> "<<flush;
-        cin.getline(in_buffer, sizeof(in_buffer));
-    } while(strlen(in_buffer) != 0 && strcmp(in_buffer, "y") != 0 && strcmp(in_buffer, "n") != 0);
+        Args args(cin);
+        LOG(LOG_DEBUG, "Args: %s", args.c_str());
+        if (args.getArgc() == 1 && strcmp(args.getArgv(0), "y") == 0){
+            response = true;
+            break;
+        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "n") == 0){
+            response = false;
+            break;
+        } else if (args.getArgc() < 0){ // EOF
+            response = false;
+            break;
+        } else{
+            continue;
+        }
+    } while(1);
 
-    bool response = strcmp(in_buffer, "y") == 0;
 
     return server->replyPeerChallenge(msg->getUsername(), response, peer_host, listen_port);
 }
 
+ConnectionMode handleMessage(Message* msg, Server* server){
+    ChallengeForwardMessage* cfm;
+    SecureHost peer_host;
+    uint16_t listen_port;
 
-ConnectionMode serverLobby(Host host){
+    int ret;
+    LOG(LOG_INFO, "Server sent message %s", msg->getName().c_str());
+    switch(msg->getType()){
+        case CHALLENGE_FWD:
+            cfm = dynamic_cast<ChallengeForwardMessage*>(msg);
+            ret = handleReceivedChallenge(server, cfm, &peer_host, &listen_port);
+            switch (ret){
+                case -1: // game canceled
+                    cout<<"Game was canceled"<<endl;
+                    return ConnectionMode(CONTINUE);
+                case 0:
+                    cout<<"Starting game..."<<endl;
+                    return ConnectionMode(WAIT_FOR_PEER, peer_host, listen_port);
+                default:
+                    cout<<"Error"<<endl; 
+                    return ConnectionMode(EXIT, CONNECTION_ERROR);
+            }
+            break;
+        default:
+            // other messages are handled internally to 
+            // Server since they require the user to wait
+            LOG(LOG_WARN, "Received unexpected message %s", msg->getName().c_str());
+            return ConnectionMode(CONTINUE);
+    }
+}
+
+ConnectionMode handleStdin(Server* server){
+    SecureHost peer_host;
+
+    int ret;
+    // Input from user
+    Args args(cin);
+    if (args.getArgc() < 0){
+        ret = -2; // received EOF
+    } else{
+        ret = doAction(args, server, &peer_host);
+    }
+    switch (ret){
+        case 0: // do nothing
+            LOG(LOG_DEBUG, "No action");
+            return ConnectionMode(CONTINUE);
+        case 1: // error
+            cout<<"Error!"<<endl;
+            return ConnectionMode(EXIT, CONNECTION_ERROR);
+        case -1: // challenge accepted
+            cout<<"Starting game..."<<endl;
+            return ConnectionMode(CONNECT_TO_PEER, peer_host, 0);
+        case -2:
+            cout<<"Bye"<<endl;
+            return ConnectionMode(EXIT, OK);
+    default:
+        return ConnectionMode(CONTINUE);
+    }
+}
+
+
+ConnectionMode serverLobby(Server* server){
     fd_set active_fd_set, read_fd_set;
 
-    Server server(host);
+    string username = server->getPlayerUsername();
 
-    char in_buffer[256];
-
-    cout<<"What is your username?"<<endl;
-
-    do{
-        cout<<"> "<<flush;
-        cin.getline(in_buffer, sizeof(in_buffer));
-        if (strlen(in_buffer) < MIN_USERNAME_LENGTH){
-            cout<<"Username must be at least "<<MIN_USERNAME_LENGTH<<" characters."<<endl;
+    if (!server->isConnected()){
+        cout<<"Registering to "<<server->getHost().toString()<<" as "<<username<<endl;
+        if (server->registerToServer() != 0){
+            cout<<"Connection to "<<server->getHost().toString()<<" failed!"<<endl;
+            return ConnectionMode(EXIT, CONNECTION_ERROR);
         }
-        if (strlen(in_buffer) > MAX_USERNAME_LENGTH){
-            cout<<"Username must be at most "<<MAX_USERNAME_LENGTH<<" characters."<<endl;
-        }
-    } while(strlen(in_buffer) < MIN_USERNAME_LENGTH 
-            || strlen(in_buffer) > MAX_USERNAME_LENGTH);
-
-    string username(in_buffer);
-
-    cout<<"Registering to "<<host.toString()<<" as "<<username<<endl;
-    
-    if (server.registerToServer(username) != 0){
-        cout<<"Connection to "<<host.toString()<<" failed!"<<endl;
-        return ConnectionMode(EXIT, -1);
+        LOG(LOG_INFO, "Server %s is now connected", 
+                        server->getHost().toString().c_str());
+    } else {
+        LOG(LOG_INFO, "Server %s was already connected", 
+                        server->getHost().toString().c_str());
     }
 
-    Host peer_host;
+    SecureHost peer_host;
 
     /* Initialize the set of active sockets. */
     FD_ZERO(&active_fd_set);
-    FD_SET(server.getSocketWrapper()->getDescriptor(), &active_fd_set);
+    FD_SET(server->getSocketWrapper()->getDescriptor(), &active_fd_set);
     FD_SET(STDIN, &active_fd_set);
 
     printAvailableActions();
@@ -131,74 +197,31 @@ ConnectionMode serverLobby(Host host){
         /* Block until input arrives on one or more active sockets. */
         read_fd_set = active_fd_set;
         if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0) {
-            perror("select");
-            exit(1);
+            LOG_PERROR(LOG_ERR, "Error in select: %s");
+            return ConnectionMode(EXIT, GENERIC_ERROR);
         }
 
-        /* Service all the sockets with input pending. */
+        /* Service all the socketsexit(1); with input pending. */
         for (int i = 0; i < FD_SETSIZE; ++i){
             if (FD_ISSET(i, &read_fd_set)){
-                if (i == server.getSocketWrapper()->getDescriptor()){
+                if (i == server->getSocketWrapper()->getDescriptor()){
                     // Message from server.
                     Message* msg;
                     try{
-                        msg = server.getSocketWrapper()->receiveAnyMsg();
+                        msg = server->getSocketWrapper()->receiveAnyMsg();
                     } catch(const char* msg){
                         LOG(LOG_ERR, "Error: %s", msg);
-                        return ConnectionMode(EXIT,1);
+                        return ConnectionMode(EXIT, CONNECTION_ERROR);
                     }
 
-                    ChallengeForwardMessage* cfm;
-
-                    int ret;
-                    LOG(LOG_DEBUG, "Server sent message %s", msg->getName().c_str());
-                    switch(msg->getType()){
-                        case CHALLENGE_FWD:
-                            uint16_t listen_port;
-                            cfm = dynamic_cast<ChallengeForwardMessage*>(msg);
-                            ret = handleReceivedChallenge(&server, cfm, &peer_host, &listen_port);
-                            switch (ret){
-                                case -1: // game canceled
-                                    cout<<"Game was canceled"<<endl;
-                                    break;
-                                case 0:
-                                    cout<<"Starting game..."<<endl;
-                                    return ConnectionMode(WAIT_FOR_PEER, listen_port);
-                                default:
-                                    cout<<"Error"<<endl; 
-                                    return ConnectionMode(EXIT, 1);
-                            }
-                            break;
-                        default:
-                            // other messages are handled internally to 
-                            // Server since they require the user to wait
-                            LOG(LOG_WARN, "Received unexpected message %s", msg->getName().c_str());
+                    ConnectionMode m = handleMessage(msg, server);
+                    if (m.connection_type != CONTINUE){
+                        return m;
                     }
-
                 } else if (i == STDIN){
-                    int ret;
-                    // Input from user
-                    cin.getline(in_buffer, sizeof(in_buffer));
-                    if (strlen(in_buffer) == 0){
-                        ret = -2; // received EOF
-                    } else{
-                        ret = doAction(Args(in_buffer), &server, &peer_host);
-                    }
-                    switch (ret){
-                        case 0: // do nothing
-                            LOG(LOG_DEBUG, "No action");
-                            break;
-                        case 1: // error
-                            cout<<"Error!"<<endl;
-                            return ConnectionMode(EXIT, 1);
-                        case -1: // challenge accepted
-                            cout<<"Starting game..."<<endl;
-                            return ConnectionMode(CONNECT_TO_PEER, peer_host);
-                        case -2:
-                            cout<<"Bye"<<endl;
-                            return ConnectionMode(EXIT, 0);
-                    default:
-                        break;
+                    ConnectionMode m = handleStdin(server);
+                    if (m.connection_type != CONTINUE){
+                        return m;
                     }
                 }
             }

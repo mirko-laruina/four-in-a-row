@@ -31,7 +31,10 @@ protected:
     int socket_fd;
 
     /** Pre-allocated buffer for incoming messages */
-    char buffer[MAX_MSG_SIZE];
+    char buffer_in[MAX_MSG_SIZE];
+
+    /** Pre-allocated buffer for outgoing messages */
+    char buffer_out[MAX_MSG_SIZE];
 
     /** Index in the buffer that has been read up to now */
     msglen_t buf_idx;
@@ -119,6 +122,8 @@ public:
      */
     void setOtherAddr(struct sockaddr_in addr){other_addr = addr;}
 
+    sockaddr_in* getOtherAddr() { return &other_addr;}
+
     /**
      * Returns connected host.
      */
@@ -152,18 +157,21 @@ private:
     struct sockaddr_in my_addr;
 public:
     /** 
-     * Initialize a new socket on a random port.
+     * Binds the socket to the requested port.
      * 
      * @param port the port you want to bind on 
+     * @returns 0 in case of success
+     * @returns 1 otherwise
      */
-    ServerSocketWrapper();
+    int bindPort(int port);
 
     /** 
-     * Initialize a new socket at the requested port.
+     * Binds the socket to a random port.
      * 
-     * @param port the port you want to bind on 
+     * @returns 0 in case of success
+     * @returns 1 otherwise 
      */
-    ServerSocketWrapper(int port);
+    int bindPort();
 
     /**
      * Accepts any incoming connection and returns the related SocketWrapper.
@@ -176,4 +184,4 @@ public:
     int getPort(){return ntohs(my_addr.sin_port);}
 };
 
-#endif // SOCKET_WRAPPER_H
+#endif // SOCKET_WRAPPER_Hln

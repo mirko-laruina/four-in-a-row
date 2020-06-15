@@ -34,13 +34,18 @@
 #include "user_list.h"
 #include "utils/message_queue.h"
 
+#include "security/crypto_utils.h"
+
 using namespace std;
 
 typedef pair<int,Message*> msgqueue_t;
+typedef map<string,X509*> cert_map_t;
 
 static UserList user_list;
 static MessageQueue<msgqueue_t,MAX_QUEUE_LENGTH> message_queue;
 static pthread_t threads[N_THREADS];
+static cert_map_t cert_map;
+static X509* cert;
 
 void logUnexpectedMessage(User* u, Message* m){
     LOG(LOG_WARN, "User %s (state %d) was not expecting a message of type %d", 
@@ -71,11 +76,25 @@ void doubleUnlock(User* u_keep_lock, User* u_unlock){
 
 bool handleRegisterMessage(User* u, RegisterMessage* msg){
     string username = msg->getUsername();
+    string usernameCert = usernameFromCert(u->getSocketWrapper()->getCert());
+    if (username.compare(usernameCert) == 0){
+        LOG(LOG_WARN, "Malicious operation: %s tried to register as %s",
+                usernameCert.c_str(), username.c_str());
+        return false;
+    }
     u->setUsername(username);
-    u->setState(AVAILABLE);
-    // readd with username
-    user_list.add(u);
-    return true;
+
+    if (!user_list.exists(username)){
+        u->setState(AVAILABLE); 
+        // readd with username
+        user_list.add(u);
+        return true;
+    } else {
+        LOG(LOG_WARN, "User %s already registered!", username.c_str());
+        //TODO send error
+        u->setState(DISCONNECTED); 
+        return false;
+    }
 }
 
 bool handleChallengeMessage(User* u, ChallengeMessage* msg){
@@ -125,7 +144,7 @@ bool handleChallengeMessage(User* u, ChallengeMessage* msg){
     doubleUnlock(u, challenged);
     user_list.yield(challenged);
 
-    return true;
+    return res;
 }
 
 bool handleGameEndMessage(User* u, GameEndMessage* msg){
@@ -172,11 +191,26 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
 
         struct sockaddr_in opp_addr = opponent->getSocketWrapper()      
                                         ->getConnectedHost().getAddress();
-        GameStartMessage msg_to_u(opponent->getUsername(), opp_addr);
+        opp_addr.sin_port = 0;
+        cert_map_t::iterator opp_pair = cert_map.find(opponent->getUsername());
+        if(opp_pair == cert_map.end()) {
+            doubleUnlock(u, opponent);
+            user_list.yield(opponent);
+            return false;
+        }
+        GameStartMessage msg_to_u(opponent->getUsername(), opp_addr, opp_pair->second);
+
         struct sockaddr_in u_addr = u->getSocketWrapper()      
                                         ->getConnectedHost().getAddress();
         u_addr.sin_port = htons(msg->getListenPort());
-        GameStartMessage msg_to_opp(u->getUsername(), u_addr);
+        cert_map_t::iterator u_pair = cert_map.find(u->getUsername());
+        if(u_pair == cert_map.end()) {
+            doubleUnlock(u, opponent);
+            user_list.yield(opponent);
+            return false;
+        }
+        GameStartMessage msg_to_opp(u->getUsername(), u_addr, u_pair->second);
+
         int res_u = u->getSocketWrapper()->sendMsg(&msg_to_u);
         int res_opp = opponent->getSocketWrapper()->sendMsg(&msg_to_opp);
 
@@ -226,61 +260,129 @@ bool handleChallengeResponseMessage(User* u, ChallengeResponseMessage* msg){
     return res;
 }
 
-bool handleMessage(User* user, Message* msg){
+bool handleClientHelloMessage(User* u, ClientHelloMessage* chm){
+    string username = chm->getMyId();
+    cert_map_t::iterator res;
+    SecureSocketWrapper *sw = u->getSocketWrapper();
+    
+    if ((res = cert_map.find(username)) != cert_map.end()){
+        sw->setOtherCert(res->second);
+        int ret = u->getSocketWrapper()->handleClientHello(chm);
+        return ret == 0;
+    } else{
+        LOG(LOG_WARN, "User %s not found in cert_map", username.c_str());
+        return false;
+    }
+}
+
+bool handleClientVerifyMessage(User* u, ClientVerifyMessage* cvm){
+    int ret = u->getSocketWrapper()->handleClientVerify(cvm);
+    if(ret == 0){
+        u->setState(SECURELY_CONNECTED);
+        return true;
+    } else {
+        LOG(LOG_ERR, "Client Verify failed!");
+        u->setState(DISCONNECTED);
+        return false;
+    }
+}
+
+bool handleCertificateRequestMessage(User* u, CertificateRequestMessage* crm){
+    CertificateMessage cm(cert);
+    int ret = u->getSocketWrapper()->sendMsg(&cm);
+    if(ret == 0){
+        return true;
+    } else {
+        LOG(LOG_ERR, "Error sending certificate to client!");
+        u->setState(DISCONNECTED);
+        return false;
+    }
+}
+
+bool handleMessage(User* user, Message* raw_msg){
     bool res = true;
-    LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
-        user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
 
     user->lock();
 
-    switch(user->getState()){
-        case JUST_CONNECTED:
-            switch(msg->getType()){
-                case REGISTER:
-                    res = handleRegisterMessage(user,        
-                        dynamic_cast<RegisterMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        case AVAILABLE:
-            switch(msg->getType()){
-                case CHALLENGE:
-                    res = handleChallengeMessage(user,        
-                        dynamic_cast<ChallengeMessage*>(msg));
-                    break;
-                case USERS_LIST_REQ:
-                    res = handleUsersListRequestMessage(user,
-                        dynamic_cast<UsersListRequestMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        case CHALLENGED: 
-            switch(msg->getType()){
-                case CHALLENGE_RESP:
-                    res = handleChallengeResponseMessage(user,
-                        dynamic_cast<ChallengeResponseMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        case PLAYING: 
-            switch(msg->getType()){
-                case GAME_END:
-                    res = handleGameEndMessage(user,
-                        dynamic_cast<GameEndMessage*>(msg));
-                    break;
-                default:
-                    logUnexpectedMessage(user, msg);
-            }
-            break;
-        default:
-            LOG(LOG_ERR, "User %s is in unrecognized state %d", 
-                user->getUsername().c_str(), (int) user->getState());
+    try{
+
+        Message* msg = user->getSocketWrapper()->handleMsg(raw_msg);
+
+        LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
+            user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
+
+        switch(user->getState()){
+            case JUST_CONNECTED:
+                switch(msg->getType()){
+                    case CLIENT_HELLO:
+                        res = handleClientHelloMessage(user,
+                            dynamic_cast<ClientHelloMessage*>(msg));
+                        break;
+                    case CLIENT_VERIFY:
+                        res = handleClientVerifyMessage(user,
+                            dynamic_cast<ClientVerifyMessage*>(msg));
+                        break;
+                    case CERT_REQ:
+                        res = handleCertificateRequestMessage(user,
+                            dynamic_cast<CertificateRequestMessage*>(msg));
+                    // TODO: handle cert request
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case SECURELY_CONNECTED:
+                switch(msg->getType()){
+                    case REGISTER:
+                        res = handleRegisterMessage(user,        
+                            dynamic_cast<RegisterMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case AVAILABLE:
+                switch(msg->getType()){
+                    case CHALLENGE:
+                        res = handleChallengeMessage(user,        
+                            dynamic_cast<ChallengeMessage*>(msg));
+                        break;
+                    case USERS_LIST_REQ:
+                        res = handleUsersListRequestMessage(user,
+                            dynamic_cast<UsersListRequestMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case CHALLENGED: 
+                switch(msg->getType()){
+                    case CHALLENGE_RESP:
+                        res = handleChallengeResponseMessage(user,
+                            dynamic_cast<ChallengeResponseMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            case PLAYING: 
+                switch(msg->getType()){
+                    case GAME_END:
+                        res = handleGameEndMessage(user,
+                            dynamic_cast<GameEndMessage*>(msg));
+                        break;
+                    default:
+                        logUnexpectedMessage(user, msg);
+                }
+                break;
+            default:
+                LOG(LOG_ERR, "User %s is in unrecognized state %d", 
+                    user->getUsername().c_str(), (int) user->getState());
+        }
+
+        delete msg;
+    } catch(const char* error_msg){
+        LOG(LOG_ERR, "Caught error: %s", error_msg);
+        res = false;
     }
 
     user->unlock();
@@ -298,7 +400,6 @@ void* worker(void *args){
             }
             user_list.yield(u);
         }
-        delete p.second;
     }
         
 }
@@ -309,23 +410,67 @@ void init_threads(){
     }
 }
 
+bool checkCertsInCertMap(X509_STORE* store, cert_map_t cert_map){
+    for (cert_map_t::iterator it = cert_map.begin();
+        it != cert_map.end();
+        ++it
+    ){
+        if (!verify_peer_cert(store, it->second)){
+            LOG(LOG_ERR, "Validation failed for certificate in directory: %s", 
+                    it->first.c_str());
+            return false;
+        }
+    }
+    return true;
+
+}
+
 int main(int argc, char** argv){
     fd_set active_fd_set, read_fd_set;
 
-    if (argc < 2){
-        cout<<"Usage: "<<argv[0]<<" port"<<endl;
+    if (argc < 7){
+        cout<<"Usage: "<<argv[0]<<" port cert.pem key.pem cacert.pem crl.pem"<<endl;
         exit(1);
     }
 
     int port = atoi(argv[1]);
+    cert = load_cert_file(argv[2]);
+    EVP_PKEY* key = load_key_file(argv[3], NULL);
+    X509* cacert = load_cert_file(argv[4]);
+    X509_CRL* crl = load_crl_file(argv[5]);
+    X509_STORE* store = build_store(cacert, crl);
+    cert_map = buildCertMapFromDirectory(argv[6]);
 
-    ServerSocketWrapper server_sw(port);
+    if (cert_map.size() == 0){
+        LOG(LOG_ERR, "No certificates found in directory");
+        return 1;
+    }
+
+    if (!checkCertsInCertMap(store, cert_map)){
+        return 1;
+    }
+
+    LOG(LOG_INFO, "Loaded certificates from %s", argv[6]);
+
+    ServerSecureSocketWrapper server_sw(cert, key, store);
+
+    int ret = server_sw.bindPort(port);
+    if (ret != 0){
+        LOG(LOG_FATAL, "Error binding to port %d", port);
+        exit(1);
+    }
+
+    LOG(LOG_INFO, "Binded to port %d", port);
 
     init_threads();
+
+    LOG(LOG_INFO, "Started %d worker threads", N_THREADS);
 
     /* Initialize the set of active sockets. */
     FD_ZERO(&active_fd_set);
     FD_SET(server_sw.getDescriptor(), &active_fd_set);
+
+    LOG(LOG_INFO, "Polling open sockets");
 
     while (1){
         /* Block until input arrives on one or more active sockets. */
@@ -347,7 +492,7 @@ int main(int argc, char** argv){
                 continue;
             }
 
-            perror("select");
+            LOG_PERROR(LOG_FATAL, "Error in select: %s");
             exit(1);
         }
 
@@ -356,7 +501,7 @@ int main(int argc, char** argv){
             if (FD_ISSET(i, &read_fd_set)){
                 if (i == server_sw.getDescriptor()) {
                     /* Connection request on original socket. */
-                    SocketWrapper* sw = server_sw.acceptClient();
+                    SecureSocketWrapper* sw = server_sw.acceptClient();
 
                     LOG(LOG_INFO, "New connection from %s", 
                         sw->getConnectedHost().toString().c_str());
@@ -370,11 +515,12 @@ int main(int argc, char** argv){
                     if (u->getState() == DISCONNECTED){
                         LOG(LOG_DEBUG, "Received message from disconnected user with countRefs = %d", u->countRefs());
                         user_list.yield(u);
+                        FD_CLR(i, &active_fd_set); // ignore him
                         continue;
                     }
                     const char* u_addr_str = u->getSocketWrapper()
                             ->getConnectedHost().toString().c_str();
-                    LOG(LOG_DEBUG, "Available message from %s (%s)",
+                    LOG(LOG_INFO, "Available message from %s (%s)",
                         u->getUsername().c_str(), u_addr_str);
                     try{
                         Message* m = u->getSocketWrapper()->readPartMsg();

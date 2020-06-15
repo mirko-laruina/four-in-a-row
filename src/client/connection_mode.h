@@ -9,7 +9,7 @@
 #ifndef CONNECTION_MODE_H
 #define CONNECTION_MODE_H
 
-#include "network/host.h"
+#include "security/secure_host.h"
 
 /** 
  * Type of gmae connection requested by the user:
@@ -22,7 +22,9 @@
  * SINGLE_PLAYER: the player plays against an AI (tbf it's random).
  * EXIT: (used internally) exit the game with the given return code.
  */
-enum ConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER, SINGLE_PLAYER, EXIT};
+enum ConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER, SINGLE_PLAYER, EXIT, CONTINUE};
+
+enum ExitCode {OK, CONNECTION_ERROR, GENERIC_ERROR, FATAL_ERROR};
 
 /**
  * Structure holding information about the connection requested by the user.
@@ -31,19 +33,22 @@ enum ConnectionType {CONNECT_TO_SERVER, CONNECT_TO_PEER, WAIT_FOR_PEER, SINGLE_P
  */
 struct ConnectionMode {
     enum ConnectionType connection_type;
+    SecureHost host;
     union{
-        Host host;
-        int listen_port;
-        int exit_code;
+        uint16_t listen_port;
+        enum ExitCode exit_code;
     };
     ConnectionMode(enum ConnectionType connection_type, 
-                        int listen_port) 
-            : connection_type(connection_type), listen_port(listen_port) {}
-    ConnectionMode(enum ConnectionType connection_type, 
-                        char* ip, int port) 
-            : connection_type(connection_type), host(Host(ip, port)) {}
-    ConnectionMode(enum ConnectionType connection_type, Host host) 
-            : connection_type(connection_type), host(host) {}
+                        const char* ip, int port, X509* cert, uint16_t listen_port) 
+            : connection_type(connection_type), host(SecureHost(ip, port,cert)), listen_port(listen_port) {}
+    ConnectionMode(enum ConnectionType connection_type, SecureHost host, uint16_t listen_port) 
+            : connection_type(connection_type), host(host), listen_port(listen_port) {}
+
+    ConnectionMode(enum ConnectionType connection_type, enum ExitCode exit_code) 
+            : connection_type(connection_type), exit_code(exit_code) {}
+
+    ConnectionMode(enum ConnectionType connection_type) 
+            : connection_type(connection_type) {}
 
 };
 

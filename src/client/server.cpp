@@ -13,23 +13,34 @@
 #include <iostream>
 
 Server::~Server(){
-    sw->closeSocket();
-    delete sw;
+    if (sw != NULL){
+        sw->closeSocket();
+        delete sw;
+    }
 }
 
-int Server::registerToServer(string username){
-    if (sw->connectServer(host) != 0)
+int Server::registerToServer(){
+    if (sw->connectServer(host) != 0){
+        connected = false;
         return 1;
+    }
+    if (sw->handshakeClient() != 0){
+        connected = false;
+        return 1;
+    }
 
-    RegisterMessage msg(username);
+    RegisterMessage msg(getPlayerUsername());
 
-    return sw->sendMsg(&msg);
+    int ret = sw->sendMsg(&msg);
+    connected = ret == 0;
+    return ret;
 }
 
 string Server::getUserList(){
     UsersListRequestMessage req_msg;
 
     if (sw->sendMsg(&req_msg) != 0){
+        connected = false;
         return "";
     }
 
@@ -40,6 +51,7 @@ string Server::getUserList(){
     } catch (const char* error_msg){
         cerr<<"Could not connect to server " <<host.toString();
         cerr<<" : "<<error_msg << endl;
+        connected = false;
         return "";
     }
     
@@ -49,12 +61,13 @@ string Server::getUserList(){
     return usernames;
 }
 
-int Server::challengePeer(string username, Host* peerHost){
+int Server::challengePeer(string username, SecureHost* peerHost){
     ChallengeMessage req_msg(username);
     
-    if (sw->sendMsg(&req_msg) != 0)
+    if (sw->sendMsg(&req_msg) != 0){
+        connected = false;
         return 1;
-
+    }
     Message* res_msg;
 
     try{
@@ -63,6 +76,7 @@ int Server::challengePeer(string username, Host* peerHost){
     } catch (const char* error_msg){
         cerr<<"Could not connect to server " <<host.toString();
         cerr<<" : "<<error_msg << endl;
+        connected = false;
         return 1;
     }
 
@@ -78,12 +92,13 @@ int Server::challengePeer(string username, Host* peerHost){
     }   
 }
 
-int Server::replyPeerChallenge(string username, bool response, Host* peerHost, uint16_t *listen_port){
-    // TODO handle port already busy
+int Server::replyPeerChallenge(string username, bool response, SecureHost* peerHost, uint16_t *listen_port){
+    // TODO handle port already busy ?
     *listen_port = rand() % (TO_PORT - FROM_PORT + 1) + FROM_PORT;
 
     ChallengeResponseMessage msg(username, response, *listen_port);
     if(sw->sendMsg(&msg) != 0){
+        connected = false;
         return 1;
     }
 
@@ -95,6 +110,7 @@ int Server::replyPeerChallenge(string username, bool response, Host* peerHost, u
         } catch (const char* error_msg){
             cerr<<"Could not connect to server " <<host.toString();
             cerr<<" : "<<error_msg << endl;
+            connected = false;
             return 1;
         }
 
@@ -111,4 +127,16 @@ int Server::replyPeerChallenge(string username, bool response, Host* peerHost, u
     } else{
         return -1;
     }
+}
+
+int Server::signalGameEnd(){
+    GameEndMessage msg;
+    return sw->sendMsg(&msg);
+}
+
+void Server::disconnect(){
+    connected = false;
+    sw->closeSocket();
+    delete sw; 
+    sw = NULL;
 }

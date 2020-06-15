@@ -12,7 +12,9 @@
 #define SERVER_LOBBY_H
 
 #include "connection_mode.h"
-#include "network/host.h"
+#include "security/secure_host.h"
+#include "security/crypto.h"
+#include "server.h"
 
 /**
  * Handles interaction among the user, the client and the remote server.
@@ -24,6 +26,6 @@
  * Once started, this function spawns a new connection to the given host and 
  * registers to it.
  */
-ConnectionMode serverLobby(Host host);
+ConnectionMode serverLobby(Server* server);
 
 #endif // SERVER_LOBBY_H

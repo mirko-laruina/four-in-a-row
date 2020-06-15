@@ -5,7 +5,7 @@
  * 
  * TODO: it is random, calculate it
  */
-#define MAX_MSG_SIZE 1024
+#define MAX_MSG_SIZE 8192
 
 
 
@@ -21,4 +21,4 @@
 // Misc *********************************************************************
 #define MAX_USERS_IN_MESSAGE 10
 #define MAX_USERNAME_LENGTH 16
-#define MIN_USERNAME_LENGTH 4
+#define MIN_USERNAME_LENGTH 2

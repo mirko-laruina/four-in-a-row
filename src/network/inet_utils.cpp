@@ -43,7 +43,7 @@ int bind_random_port(int socket, struct sockaddr_in *addr){
     return 0;
 }
 
-struct sockaddr_in make_sv_sockaddr_in(char *ip, int port){
+struct sockaddr_in make_sv_sockaddr_in(const char *ip, int port){
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;

@@ -18,18 +18,18 @@
 #include "multi_player.h"
 #include "connection_mode.h"
 #include "server_lobby.h"
+#include "security/crypto.h"
+#include "server.h"
 
 using namespace std;
 
 static const char players[] = {'X', 'O'};
-static char in_buffer[256];
 
 /**
  * Prints command usage information.
  */
-void print_help(){
-  cout<<"On host A: ./client"<<endl;
-  cout<<"On host B: ./client ipA portA"<<endl;
+void print_help(char* argv0){
+  cout<<"Usage: "<<argv0<<" cert.pem key.pem cacert.pem crl.pem [other_cert.pem]"<<endl;
 }
 
 void printWelcome(){
@@ -46,28 +46,42 @@ void printWelcome(){
 
 struct ConnectionMode promptChooseConnection(){
     cout<<"You can connect to a server, wait for a peer or connect to a peer"<< endl;
-    cout<<"To connect to a server type: `server host port`"<< endl;
-    cout<<"To connect to a peer type: `peer host port`"<< endl;
-    cout<<"To wait for a peer type: `peer listen_port`"<< endl;
+    cout<<"To connect to a server type: `server host port path/to/server_cert.pem`"<< endl;
+    cout<<"To connect to a peer type: `peer host port path/to/peer_cert.pem`"<< endl;
+    cout<<"To wait for a peer type: `peer listen_port path/to/peer_cert.pem`"<< endl;
     cout<<"To play offline type: `offline`"<< endl;
+    cout<<"To exit type: `exit`"<< endl;
 
     do {
         cout<<"> "<<flush;
-        cin.getline(in_buffer, sizeof(in_buffer));
-        Args args(in_buffer);
-        if (args.argc == 2 && strcmp(args.argv[0], "peer") == 0){
-            return ConnectionMode(WAIT_FOR_PEER, atoi(args.argv[1]));
-        } else if (args.argc == 3 && strcmp(args.argv[0], "peer") == 0){
-            return ConnectionMode(CONNECT_TO_PEER, args.argv[1], 
-                                        atoi(args.argv[2]));
-        } else if (args.argc == 3 && strcmp(args.argv[0], "server") == 0){
-            return ConnectionMode(CONNECT_TO_SERVER, args.argv[1], 
-                                        atoi(args.argv[2]));
-        } else if (args.argc == 1 && strcmp(args.argv[0], "offline") == 0){
-            return ConnectionMode(SINGLE_PLAYER, 0);
-        } else if (args.argc == 0){
+        Args args(cin);
+        if (args.getArgc() == 3 && strcmp(args.getArgv(0), "peer") == 0){
+            X509* cert = load_cert_file(args.getArgv(2));
+            char dummy_ip[] = "127.0.0.1";
+            return ConnectionMode(WAIT_FOR_PEER, dummy_ip, 
+                                0, cert, atoi(args.getArgv(1)));
+
+        } else if (args.getArgc() == 4 && strcmp(args.getArgv(0), "peer") == 0){
+            X509* cert = load_cert_file(args.getArgv(3));
+            return ConnectionMode(CONNECT_TO_PEER, args.getArgv(1), 
+                                        atoi(args.getArgv(2)), cert, 0);
+                                        
+        } else if (args.getArgc() == 4 && strcmp(args.getArgv(0), "server") == 0){
+            X509* cert = load_cert_file(args.getArgv(3));
+            return ConnectionMode(CONNECT_TO_SERVER, args.getArgv(1), 
+                                        atoi(args.getArgv(2)), cert, 0);
+                                        
+        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "offline") == 0){
+            return ConnectionMode(SINGLE_PLAYER);
+            
+        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "exit") == 0){
             cout << "Bye" << endl;
-            exit(0);
+            return ConnectionMode(EXIT, OK);
+        } else if (args.getArgc() == 0){
+            return ConnectionMode(CONTINUE);
+        } else if (args.getArgc() == -1){ // EOF
+            cout << "Bye" << endl;
+            return ConnectionMode(EXIT, OK);
         }else{
             cout << "Could not parse arguments: "<< args << endl;
         }
@@ -76,46 +90,101 @@ struct ConnectionMode promptChooseConnection(){
 
 
 int main(int argc, char** argv){
-    SocketWrapper *sw;
+    SecureSocketWrapper *sw = NULL;
+    Server* server = NULL;
+
+    if (argc < 5){
+        print_help(argv[0]);
+        return 1;
+    }
+
+    X509* cert = load_cert_file(argv[1]);
+    EVP_PKEY* key = load_key_file(argv[2], NULL);
+    X509* cacert = load_cert_file(argv[3]);
+    X509_CRL* crl = load_crl_file(argv[4]);
+    X509_STORE* store = build_store(cacert, crl);
 
     srand(time(NULL));
+
+    int ret;
 
     printWelcome();
     cout<<endl<<"Welcome to 4-in-a-row!"<<endl;
     cout<<"The rules of the game are simple: you win when you have 4 connected tokens along any direction."<<endl;
 
-    struct ConnectionMode ucc = promptChooseConnection();
+    do{
+        struct ConnectionMode ucc = promptChooseConnection();
 
-    if (ucc.connection_type == CONNECT_TO_SERVER){
-        ucc = serverLobby(ucc.host);
-    }
+        if (ucc.connection_type == EXIT && ucc.exit_code == OK){
+            exit(0); // Bye
+        }
 
-    int ret;
-    switch(ucc.connection_type){
-        case WAIT_FOR_PEER:
-            sw = waitForPeer(ucc.listen_port);
-            if (sw != NULL)
-                ret = playWithPlayer(MY_TURN, sw);
-            else 
-                ret = 1;
-            break;
-        case CONNECT_TO_PEER:
-            sw = connectToPeer(ucc.host);
-            if (sw != NULL)
-                ret = playWithPlayer(THEIR_TURN, sw);
-            else 
-                ret = 1;
-            break;
-        case SINGLE_PLAYER:
-            ret = playSinglePlayer();
-            break;
-        case EXIT:
-            ret = ucc.exit_code;
-            break;
-        case CONNECT_TO_SERVER:
-            ret = 1;
-            break;
-    }
+        if (ucc.connection_type == CONNECT_TO_SERVER){
+            server = new Server(ucc.host, cert, key, store);   
+        }
+
+        bool loopLobby = true;
+        
+        do{
+            try{
+                if (server != NULL){
+                    ucc = serverLobby(server);
+                }
+
+                switch(ucc.connection_type){
+                    case WAIT_FOR_PEER:
+                        sw = waitForPeer(ucc.listen_port, ucc.host, cert, key, store);
+                        if (sw != NULL)
+                            ret = playWithPlayer(MY_TURN, sw);
+                        else 
+                            ret = CONNECTION_ERROR;
+
+                        loopLobby = true;
+                        break;
+                    case CONNECT_TO_PEER:
+                        sw = connectToPeer(ucc.host, cert, key, store);
+                        if (sw != NULL)
+                            ret = playWithPlayer(THEIR_TURN, sw);
+                        else 
+                            ret = CONNECTION_ERROR;
+                        
+                        loopLobby = true;
+                        break;
+                    case SINGLE_PLAYER:
+                        ret = playSinglePlayer();
+                        loopLobby = false;
+                        break;
+                    case EXIT:
+                        ret = ucc.exit_code;
+                        loopLobby = false;
+                        break;
+                    case CONNECT_TO_SERVER:
+                        ret = FATAL_ERROR;
+                        loopLobby = false;
+                        break;
+                    case CONTINUE:
+                        ret = OK;
+                        loopLobby = true;
+                        break;
+                }
+
+                if (loopLobby && ret == OK && 
+                    server != NULL && server->isConnected()
+                ){
+                    server->signalGameEnd();
+                }
+            } catch(const char* error_msg){
+                LOG(LOG_ERR, "Caught error: %s", error_msg);
+                ret = GENERIC_ERROR;
+                loopLobby = false;
+            }
+
+        } while (loopLobby && server != NULL && server->isConnected());
+        if (server != NULL){
+            delete server;
+            server = NULL;
+        }
+    } while(ret != FATAL_ERROR);
 
     return ret;
 }

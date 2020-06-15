@@ -120,7 +120,7 @@ string UserList::listAvailableFromTo(int from){
             if (n < from)
                 continue;
 
-            os << it->first.substr(0, it->first.size()-1);
+            os << it->first;
             if (n < from+MAX_USERS_IN_MESSAGE-1)
                 os << ",";
             

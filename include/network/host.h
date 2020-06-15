@@ -20,8 +20,7 @@ using namespace std;
 /**
  * Class that holds a host information
  * 
- * At the moment, it only holds its inet addr but in the future its 
- * public key and other OpenSSL stuff will be put here.
+ * OpenSSL certificates are held in SecureHost class.
  */
 class Host{
 private:
@@ -44,9 +43,10 @@ public:
     /** 
      * Constructs new instance from IP/port pair
      * 
-     * @param addr the inet address of the remote host
+     * @param ip the IP address the remote host
+     * @param port the port the remote host
      */
-    Host(char* ip, int port);
+    Host(const char* ip, int port);
 
     /** Returns the inet address of the host */
     struct sockaddr_in getAddress(){return addr;}

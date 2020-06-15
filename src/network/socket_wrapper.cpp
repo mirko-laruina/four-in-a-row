@@ -16,36 +16,35 @@
 SocketWrapper::SocketWrapper() {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd < 0){
-        LOG(LOG_ERR, "Could not create socket!\n");
-        perror("Error: ");
+        LOG_PERROR(LOG_ERR, "Error creating socket: %s");
         return;    
     }
     buf_idx = 0;
 }
 Message* SocketWrapper::readPartMsg(){
     int len;
-    msglen_t msglen;
+    msglen_t msglen = 0;
 
     if (buf_idx < sizeof(msglen)){ // I first need to read msglen
         // read available message
-        len = read(socket_fd, buffer+buf_idx, sizeof(msglen)-buf_idx);
+        len = read(socket_fd, buffer_in+buf_idx, sizeof(msglen)-buf_idx);
         // I will read rest of it in another moment since I do not know
         // whether other data is available.
         // TODO: find a way to tell whether socket has other data
     } else{
         // read msg length
-        msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+        msglen = MSGLEN_NTOH(*((msglen_t*)buffer_in));
         assert(msglen <= MAX_MSG_SIZE); // must not happen
 
         // read up to msg length
-        len = read(socket_fd, buffer+buf_idx, msglen-buf_idx);
+        len = read(socket_fd, buffer_in+buf_idx, msglen-buf_idx);
     }
 
-    DUMP_BUFFER_HEX_DEBUG(buffer, len);
+    DUMP_BUFFER_HEX_DEBUG(buffer_in, len);
     
     if (len < 0){
-        perror("Error:");
-        throw "Error";
+        LOG_PERROR(LOG_ERR, "Error reading from socket: %s");
+        throw "Error reading from socket";
     } else if (len == 0){
         throw "Connection lost";
     } 
@@ -60,7 +59,7 @@ Message* SocketWrapper::readPartMsg(){
     }
 
     // read msg length
-    msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+    msglen = MSGLEN_NTOH(*((msglen_t*)buffer_in));
 
     if (msglen > MAX_MSG_SIZE){
         throw("Message is too big");
@@ -72,7 +71,7 @@ Message* SocketWrapper::readPartMsg(){
         return NULL;
     }
 
-    Message *m = readMessage(buffer+sizeof(msglen), msglen-sizeof(msglen));
+    Message *m = readMessage(buffer_in+sizeof(msglen), msglen-sizeof(msglen));
 
     // reset buffer
     buf_idx = 0;
@@ -85,9 +84,9 @@ Message* SocketWrapper::receiveAnyMsg(){
     msglen_t msglen;
 
     // read msg length
-    len = recv(socket_fd, buffer, sizeof(msglen), MSG_WAITALL);
+    len = recv(socket_fd, buffer_in, sizeof(msglen), MSG_WAITALL);
 
-    DUMP_BUFFER_HEX_DEBUG(buffer, len);
+    DUMP_BUFFER_HEX_DEBUG(buffer_in, len);
     
     if (len == 0){
         throw "Connection lost";
@@ -98,15 +97,15 @@ Message* SocketWrapper::receiveAnyMsg(){
     }
     
     // read msg payload
-    msglen = MSGLEN_NTOH(*((msglen_t*)buffer));
+    msglen = MSGLEN_NTOH(*((msglen_t*)buffer_in));
 
     if (msglen > MAX_MSG_SIZE){
         throw("Message is too big");
     } 
 
-    len += recv(socket_fd, buffer+len, msglen-len, MSG_WAITALL);
+    len += recv(socket_fd, buffer_in+len, msglen-len, MSG_WAITALL);
 
-    DUMP_BUFFER_HEX_DEBUG(buffer, len);
+    DUMP_BUFFER_HEX_DEBUG(buffer_in, len);
     
     if (len == 0){
         throw "Received EOF";
@@ -116,7 +115,7 @@ Message* SocketWrapper::receiveAnyMsg(){
         return NULL;
     }
 
-    Message *m = readMessage(buffer+sizeof(msglen), msglen-sizeof(msglen));
+    Message *m = readMessage(buffer_in+sizeof(msglen), msglen-sizeof(msglen));
 
     return m;
 }
@@ -129,7 +128,7 @@ Message* SocketWrapper::receiveMsg(MessageType type[], int n_types){
     Message *m = NULL;
     while (m == NULL){
         try{
-            m = this->receiveAnyMsg();
+            m = receiveAnyMsg();
         } catch(const char* msg){
             LOG(LOG_ERR, "%s", msg);
             return NULL;
@@ -152,25 +151,15 @@ int SocketWrapper::sendMsg(Message *msg){
     msglen_t msglen, pktlen;
     int len;
 
-    msglen = msg->size();
+    msglen = msg->write(buffer_out+sizeof(msglen));
     pktlen = msglen + sizeof(msglen);
-    if (pktlen > MAX_MSG_SIZE){
-        LOG(LOG_ERR, "Error sending %s: message is too big (requested: %d, max: %lu)", 
-            msg->getName().c_str(),
-            msglen, 
-            MAX_MSG_SIZE-sizeof(msglen)
-        );
-        return 1;
-    }
-
-    *((msglen_t*)buffer) = MSGLEN_HTON(pktlen);
-    msg->write(buffer+sizeof(msglen));
+    *((msglen_t*)buffer_out) = MSGLEN_HTON(pktlen);
 
     LOG(LOG_DEBUG, "Sending %s", msg->getName().c_str());
 
-    DUMP_BUFFER_HEX_DEBUG(buffer, pktlen);
+    DUMP_BUFFER_HEX_DEBUG(buffer_out, pktlen);
 
-    len = send(socket_fd, buffer, pktlen, 0);
+    len = send(socket_fd, buffer_out, pktlen, 0);
     if (len != pktlen){
         LOG(LOG_ERR, "Error sending %s: len (%d) != msglen (%d)", 
             msg->getName().c_str(),
@@ -201,43 +190,44 @@ int ClientSocketWrapper::connectServer(Host host){
     );
 
     if (ret != 0){
-        LOG(LOG_ERR, "Error connecting to %s", 
+        LOG_PERROR(LOG_ERR, "Error connecting to %s: %s", 
             sockaddr_in_to_string(host.getAddress()).c_str());
-        perror("Error: ");
         return ret;
     }
     
     return ret;
 }
 
-ServerSocketWrapper::ServerSocketWrapper(){
+int ServerSocketWrapper::bindPort(){
     my_addr = make_my_sockaddr_in(0);
     int ret = bind_random_port(socket_fd, &my_addr);
     if (ret <= 0){
-        LOG(LOG_ERR, "Error in binding\n");
-        perror("Error: ");        
+        LOG_PERROR(LOG_ERR, "Error in binding: %s");
+        return ret;
     }
 
     ret = listen(socket_fd, 10);
     if (ret != 0){
-        LOG(LOG_ERR, "Error in setting socket to listen mode\n");
-        perror("Error: ");        
+        LOG_PERROR(LOG_ERR, "Error in setting socket to listen mode: %s");
     }
+
+    return ret;
 }
 
-ServerSocketWrapper::ServerSocketWrapper(int port){
+int ServerSocketWrapper::bindPort(int port){
     my_addr = make_my_sockaddr_in(port);
     int ret = bind(socket_fd, (struct sockaddr*) &my_addr, sizeof(my_addr));
     if (ret != 0){
-        LOG(LOG_ERR, "Error in binding\n");
-        perror("Error: ");        
+        LOG_PERROR(LOG_ERR, "Error in binding: %s");
+        return ret;    
     }
 
     ret = listen(socket_fd, 10);
     if (ret != 0){
-        LOG(LOG_ERR, "Error in setting socket to listen mode\n");
-        perror("Error: ");        
+        LOG_PERROR(LOG_ERR, "Error in setting socket to listen mode: %s");
     }
+
+    return ret;
 }
 
 SocketWrapper* ServerSocketWrapper::acceptClient(){
