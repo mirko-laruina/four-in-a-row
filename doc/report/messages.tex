@@ -49,7 +49,7 @@ Sent by a client when a new connection has to be started.
 \end{itemize}
 
 \subsection{\texttt{SERVER HELLO}}
-Server reply to the previous message.
+Server reply to a \texttt{SERVER HELLO} message.
 \begin{figure}[h]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
@@ -338,7 +338,7 @@ Used by a client to request the server certificate.
 \end{itemize}
 
 \subsection{\texttt{CERTIFICATE}}
-Server response to the previous message.
+Server response to a \texttt{CERTIFICATE REQUEST} message.
 
 \begin{figure}[!htbp]
 	\centering
