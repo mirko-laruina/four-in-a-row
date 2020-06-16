@@ -115,6 +115,8 @@ If B wants to receive a message from A he needs to:
 
 \subsection{BAN-logic proof}
 \subsubsection{Real protocol}
+From the description before, the formal specification of the protocol easily 
+follows as presented below.
 \begin{align*}
     &M1 \; A \rightarrow B : A, B, N_A, K_A^E \\
     &M2 \; B \rightarrow A : B, A, N_B, K_B^E, \{h(A,B,N_A,N_B,K_A^E,K_B^E)\}_{k_B^{-1}} \\
@@ -122,6 +124,8 @@ If B wants to receive a message from A he needs to:
 \end{align*}
 
 \subsubsection{Assumptions}
+Note that since we are using certificates to authenticate A and B public keys, 
+we can assume that they both know the public key of the other.
 \begin{align*}
     \begin{split}
         &A \believes \pubkey{K_B} B \\
@@ -139,6 +143,9 @@ If B wants to receive a message from A he needs to:
     \end{split}
 \end{align*}
 \subsubsection{Expected Conclusions}
+In the end of the protocol, we would like that they both know all parameters to 
+subsequently generate the shared secrets and that they are certain that the 
+other peer knows them too.
 \begin{align*}
     \begin{split}
         &A \believes (N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B) \\
@@ -151,6 +158,9 @@ If B wants to receive a message from A he needs to:
 \end{align*}
 
 \subsubsection{Idealized protocol}
+By digitally signing all nonces and ephemeral keys, they are proving the other 
+that they know them. Therefore in the idealized protocol the hash is removed 
+for clarity's sake.
 \begin{align*}
     &M1 \; A \rightarrow B : N_A, \pubkey{K_A^E}A \\
     &M2 \; B \rightarrow A : \{N_A,N_B,\pubkey{K_A^E}A,\pubkey{K_B^E}B\}_{k_B^{-1}} \\
