@@ -1,0 +1,233 @@
+\section{Implementation}
+
+The source code is organized into N modules:
+\begin{itemize}
+    \item \emph{network}: contains common utilities for managing the network. 
+        The two most important abstractions are the \emph{Message}, which 
+        is an abstract interface that all message classes must implement, and 
+        the \emph{SocketWrapper}, which wraps an \emph{inet socket} and 
+        provide functions for easily sending and receiving \emph{messages}.
+    \item \emph{security}: contains the OpenSSL implementation of the 
+        cryptographic functions and the \emph{SecureSocketWrapper} class,
+        providing the same interface as the \emph{SocketWrapper} but using 
+        encrypted messages.
+    \item \emph{utils}: miscellaneous classes providing easy-to-use utility 
+        functions for, e.g., securely reading from \emph{stdin} (preventing 
+        buffer overflows), reading/writing to a bounded buffer (once again 
+        to prevent possible buffer overflows), dumping a buffer to stdout 
+        for debug purposes. It also provides an implementation of a thread-safe
+        message-passing queue which is used by the server to distribute tasks
+        among worker threads.
+    \item \emph{server}: implementation of the server executable, along with
+        some private utility classes: \emph{User}, which represent a user as 
+        a finite state machine, and \emph{UserList}, which provides a convenient
+        thread-safe collection of users which can be retrieved (through an
+        hash map) by either their username or the socket file descriptor they 
+        are bound to.
+\end{itemize}
+
+In the following, the main workflow of the client and server is illustrated.
+For a more in-depth description, please refer to the auto-generated 
+Doxygen documentation or the source code itself.
+
+\subsection{Server}
+The server is implemented as a main thread, accepting communications from 
+clients and reading messages from sockets, and multiple worker threads, that 
+handle the messages (including decryption). We will first describe the main 
+thread and then the worker threads.
+
+\subsubsection{Main thread}
+At start-up, the main thread loads its own certificate and key, the CA's 
+certificate and all client certificates. If this operation succeeds, the 
+server creates a new listening socket on the given port, spawns the worker 
+threads and waits for new connections using the \emph{select} system call.
+On a new connection request, the server accepts the connection and adds the 
+socket to the list of sockets that checked by the \emph{select}. When a client
+sends data to the server, the main thread is woken and the corresponding 
+message will be en-queued in the \emph{MessageQueue}, waiting for a worker
+thread to elaborate it.
+
+\subsubsection{Worker thread}
+The worker thread waits on a \emph{condition} variable waiting for new messages
+to be available in the \emph{MessageQueue}. Once a new message is available,
+the thread starts elaborating it. First of all, it retrieves the \emph{User}
+instance\footnote{at this time the user may not be logged in yet or he could 
+not even have completed the handshake. In these cases, the \emph{User} instance
+just represents the socket and not yet the user.} that message refers to and 
+locks it with a \emph{mutex} to prevent other threads to change the \emph{User} 
+state concurrently. Depending on the state of the user, messages are handled
+accordingly:
+
+\begin{itemize}
+    \item \emph{Just connected}: this is the starting state of a \emph{User}.
+        In this state the following messages are handled:
+        \begin{itemize}
+            \item \emph{Certificate request}: the server certificate is 
+                forwarded to the \emph{User} by means of the \emph{certificate}
+                message.
+            \item \emph{Client hello}: the client has begun an \emph{handshake}
+                with the server. The server replies with a \emph{server hello}
+                message.
+            \item \emph{Client verify}: the client is terminating the 
+                \emph{handshake}. If verification succeeds, the user is 
+                considered authenticated and is moved to the \emph{Securely 
+                connected} state.
+        \end{itemize}
+    \item \emph{Securely connected}: this is the first state a user is brought 
+        upon authentication. In this state only one message is valid:
+        \begin{itemize}
+            \item \emph{Register}: the \emph{User} communicates the server that
+                she is ready for receiving challenges and is moved to the 
+                \emph{registered} state without further action. Note that this
+                message may not be necessary, however it has been kept for 
+                compatibility with the non-secure version of the game.
+        \end{itemize}
+    \item \emph{Available}: in this state the \emph{user} is fully
+        operational: he may be returned in the user list to other users, he may
+        be challenged by other users and challenge other users. In this state 
+        the following messages are valid:
+        \begin{itemize}
+            \item \emph{User list request}: the \emph{User} asks the server
+                to tell him which users are online. The server replies with the 
+                \emph{user list}.
+            \item \emph{Challenge}: the \emph{User} tells the server he wants 
+                to challenge an \emph{opponent}. The server moves both 
+                \emph{Users} to the \emph{Challenged} state and forwards the 
+                challenge to the \emph{opponent} with a \emph{challenge forward}
+                message.
+        \end{itemize}
+    \item \emph{Challenged}: in this state the \emph{user} cannot receive any 
+        further challenge and is either waiting for a reply from the 
+        \emph{opponent} or deciding whether to accept it. In this state only 
+        the following message is handled.
+        \begin{itemize}
+            \item \emph{Challenge reply}: the \emph{User} tells the server that
+                she accepts or refuses the challenge. In the first case, 
+                the user also indicates on which port he will listen for a 
+                connection from the opponent. If the challenge is accepted, 
+                both users are sent a \emph{game start} message indicating 
+                the certificate of the \emph{opponent} and, in the case of 
+                the user that sent the challenge in the first place, also 
+                the IP address and port which the opponent is listening for 
+                a connection. Finally, both users are moved to the 
+                \emph{playing} state. In the case the challenge is refused, 
+                both users are sent a \emph{challenge cancel} message and 
+                are moved back to the \emph{available} state.
+        \end{itemize}
+    \item \emph{Playing}: in this state the \emph{user} cannot receive any 
+        challenge since it's playing with another user. In this state only 
+        one message can be received:
+        \begin{itemize}
+            \item \emph{Game end}: the user signals the server that he is now 
+                available and is moved to the \emph{available} state.
+        \end{itemize}
+    \item \emph{Disconnected}: the user connection dropped. The \emph{User}
+        instance is waiting to be destroyed and all pending messages from the 
+        users are ignored.
+\end{itemize}
+
+Furthermore, note that:
+\begin{itemize}
+    \item In case an unexpected message is received, the message is simply 
+        ignored. 
+    \item In case a challenge is not possible, either because the user or the   
+        opponent is in a state where he cannot receive challenges or because 
+        the \emph{user}/\emph{opponent} disconnected in the meanwhile, 
+        a \emph{game cancel} message is sent to both users (or just one).
+\end{itemize}
+
+Once the message handling is completed, the message is deleted, the \emph{User} 
+\emph{mutex} unlocked and the \emph{MessageQueue} is polled again. 
+However, if the message handling completed with problems that indicate that 
+the user is no longer connected, the \emph{User} is also moved to the 
+\emph{disconnected} state before releasing the lock. It is important to note 
+that the worker thread must not delete the \emph{User} instance because another
+thread may hold a reference to it. For this reason, the \emph{UserList} keeps
+track of outstanding references to every user and is in charge of deleting 
+disconnected \emph{Users} that are no longer referenced.
+
+\subsection{Client}
+At start-up, the client loads his certificate and key (inserting a password if 
+necessary) and then waits for the user to decide a playing mode: server, 
+peer (waiting for a connection), peer (connecting to the other peer) and 
+offline (used for debug purposes, the opponent has no logic).
+
+\subsubsection{Server mode}
+Once the user selects this mode, he also indicates the address and port of the 
+server. The client then sends a \emph{certificate request} to the server and 
+waits for the corresponding \emph{certificate} reply. It then initiates the 
+\emph{handshake} with the server, sending the \emph{client hello} message. Once 
+the corresponding \emph{server hello} message is received, the signature is 
+checked against the certificate and it sends back the \emph{client verify} 
+message to complete the authentication. Now that the \emph{handshake} is 
+completed, the client sends the \emph{register} message and waits for either 
+user input from stdin or server messages from the network using the 
+\emph{select} system call. Let's first describe the possible user commands that 
+can be given from stdin:
+\begin{itemize}
+    \item \emph{list}: the client sends a \emph{user list request} message,
+        waits for the corresponding \emph{user list reply} message from 
+        the server containing the list of users and then displays the list 
+        to the user.
+    \item \emph{challenge}: the client sends a \emph{challenge} message 
+        to the server indicating that he wants to challenge an \emph{opponent}
+        and waits for either a \emph{game start} or a \emph{game cancel} 
+        message. In the first case, the client enters the \emph{connect to 
+        peer} peer-to-peer mode. In the second case, the client restarts polling
+        with the \emph{select} system call.
+\end{itemize}
+
+In addition, the following messages may be received from the server:
+\begin{itemize}
+    \item \emph{challenge forward}: the server is forwarding a challenge from 
+        another user that the user can either accept or refuse. If the 
+        challenge is accepted, the client sends the server the port he will 
+        wait for the peer connection in the \emph{challenge response} 
+        message and enters the \emph{wait for peer} peer-to-peer mode.
+        Otherwise, it will just indicate that the challenge is to be
+        refused.
+\end{itemize}
+
+Note that when the client leaves the \emph{server mode} to enter one of the 
+two \emph{peer-to-peer modes} the connection with the server is kept alive 
+and will be reused when the game finishes to send the \emph{game end} message.
+The client is then brought back to the \emph{server mode} where the user 
+can list users, challenge other users and receive challenges.
+
+This mode is implemented in the \emph{client/server\_lobby.cpp} file.
+
+\subsubsection{Peer-to-Peer mode}
+The peer-to-peer mode is divided into two roles: server, which waits for a peer
+connection, and client, which connects to a peer. Once a secure connection is 
+established between the peers, the client enters the common \emph{playing} mode.
+
+This mode is implemented in the \emph{client/multi\_player.cpp} file.
+
+\paragraph{Server: wait for peer}
+Once entering this mode, the client opens a new listening socket waiting for 
+a connection from the peer. Once the peer connects, the \emph{handshake} is 
+performed as described before and the client enters the \emph{playing} mode as 
+the first player to place a move.
+
+\paragraph{Client: connect to peer}
+Once entering this mode, the client tries to connect to the peer (it will retry 
+every second for up to 10 trials). 
+Once the peer connects, the \emph{handshake} is performed as described before 
+and the client sends a \emph{start game peer} message to start the game.
+The client then enters the \emph{playing} mode as the second player to place a 
+move.
+
+\paragraph{Playing}
+For each turn until the end of the game, the client performs the following 
+operations depending on whose turn it is:
+\begin{itemize}
+    \item if it is its turn, it will ask the user to choose a column. If the 
+        column is valid, the choice is sent to the peer with a \emph{move}
+        message. Once the message is sent, the move is placed on the board
+        and the turn is switched.
+    \item if it is the turn of the opponent, it will wait for a \emph{move}
+        message. Once the message is received, the move is placed on the board 
+        and the turn is switched.
+\end{itemize}
+ 
+ 
