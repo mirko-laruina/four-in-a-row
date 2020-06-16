@@ -8,5 +8,5 @@
  - [ ] Check possible security flaws
  - [x] Hide username length by padding
  - [ ] REPORT!!
- - [ ] variable size DS
+ - [x] variable size DS
  - [ ] check whether poll is required in RAND

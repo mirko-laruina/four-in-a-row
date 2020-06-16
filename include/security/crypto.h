@@ -17,11 +17,10 @@
 #include <string.h>
 #include "logging.h"
 
-#define TAG_SIZE     16  // TODO check
-#define IV_SIZE      12  // TODO check
-#define KEY_SIZE     16  // TODO check
-#define DS_SIZE      256 // TODO check
-#define ECDH_SIZE    32  // TODO check
+/** AES-256 GCM */
+#define TAG_SIZE     16  
+#define IV_SIZE      12  
+#define KEY_SIZE     16  
 
 typedef uint32_t nonce_t;
 
@@ -229,11 +228,11 @@ void hkdf(char *key, size_t key_len,
  * 
  * @param msg the message to be signed
  * @param msglen the length of the message to be signed
- * @param signature the output signature
+ * @param signature pointer to the output signature
  * @param prvkey the private key
  * @returns the length of the signature
  */
-int dsa_sign(char* msg, int msglen, char* signature,
+int dsa_sign(char* msg, int msglen, char** signature,
              EVP_PKEY *prvkey);
 
 /**
