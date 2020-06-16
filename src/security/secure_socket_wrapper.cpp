@@ -53,6 +53,7 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
         LOG(LOG_WARN, "Unauthenticated peer sent encrypted message");
         return NULL;
     }
+    int ret;
 
     msglen_t pt_len = sm->getCtSize();
     LOG(LOG_DEBUG, "Received SecureMessage of size %d", pt_len);
@@ -67,13 +68,19 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
     DUMP_BUFFER_HEX_DEBUG(sm->getTag(), TAG_SIZE);
 
     char *buffer_pt = (char*) malloc(pt_len);
+    char buffer_aad[AAD_SIZE];
+
     if (!buffer_pt){
         LOG_PERROR(LOG_ERR, "Malloc failed: %s");
         return NULL;
     }
+
+    makeAAD(SECURE_MESSAGE, pt_len+TAG_SIZE+AAD_SIZE, buffer_aad);
+    DUMP_BUFFER_HEX_DEBUG(buffer_aad, AAD_SIZE);
+
     updateRecvIV();
 
-    int ret = aes_gcm_decrypt(sm->getCt(), pt_len, NULL, 0,
+    ret = aes_gcm_decrypt(sm->getCt(), pt_len, buffer_aad, AAD_SIZE,
                               recv_key, recv_iv,
                               buffer_pt, sm->getTag());
 
@@ -88,6 +95,8 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
 
     Message *m = readMessage(buffer_pt, pt_len);
 
+    free(buffer_pt);
+
     if (m != NULL){
         LOG(LOG_INFO, "Decrypted message of type %s", m->getName().c_str());
     } else{
@@ -100,6 +109,7 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
 {
     if (!peer_authenticated)
         return NULL;
+    int ret;
 
     char buffer_pt[MAX_MSG_SIZE];
     msglen_t buf_len = m->write(buffer_pt);
@@ -111,6 +121,7 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
 
     char* buffer_ct = (char*) malloc(MAX_MSG_SIZE);
     char* buffer_tag = (char*) malloc(TAG_SIZE);
+    char  buffer_aad[AAD_SIZE];
 
     if (!buffer_ct || !buffer_tag){
         LOG_PERROR(LOG_ERR, "Malloc failed: %s");
@@ -121,8 +132,10 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
     DUMP_BUFFER_HEX_DEBUG(buffer_pt, IV_SIZE);
 
     updateSendIV();
+    makeAAD(SECURE_MESSAGE, buf_len+TAG_SIZE+AAD_SIZE, buffer_aad);
+    DUMP_BUFFER_HEX_DEBUG(buffer_aad, AAD_SIZE);
 
-    int ret = aes_gcm_encrypt(buffer_pt, buf_len, NULL, 0,
+    ret = aes_gcm_encrypt(buffer_pt, buf_len, buffer_aad, AAD_SIZE,
                               send_key, send_iv,
                               buffer_ct, buffer_tag);
 
@@ -141,6 +154,11 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
     SecureMessage *sm = new SecureMessage(buffer_ct, ret, buffer_tag);
 
     return sm;
+}
+
+void SecureSocketWrapper::makeAAD(MessageType msg_type, msglen_t len, char* aad){
+    *((msglen_t*)aad) = MSGLEN_HTON(len);
+    aad[2] = msg_type;
 }
 
 Message *SecureSocketWrapper::readPartMsg()
