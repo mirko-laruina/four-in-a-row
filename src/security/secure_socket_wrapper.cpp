@@ -229,7 +229,7 @@ int SecureSocketWrapper::handleServerHello(ServerHelloMessage* shm)
     //Deriving the symmetric key
     generateKeys("client");
 
-    bool check = checkSignature(shm->getDs(), "client");
+    bool check = checkSignature(shm->getDs(), shm->getDsSize(), "client");
     if (!check){
         LOG(LOG_ERR, "Digital Signature verification failure!");
         return -1;
@@ -242,7 +242,7 @@ int SecureSocketWrapper::handleServerHello(ServerHelloMessage* shm)
 
 int SecureSocketWrapper::handleClientVerify(ClientVerifyMessage* cvm)
 {
-    bool check = checkSignature(cvm->getDs(), "server");
+    bool check = checkSignature(cvm->getDs(), cvm->getDsSize(), "server");
     if (!check){
         LOG(LOG_ERR, "Digital Signature verification failure!");
         return -1;
@@ -287,15 +287,25 @@ int SecureSocketWrapper::sendServerHello(){
     //Deriving the symmetric key
     generateKeys("server");
 
-    char* ds = makeSignature("server");
-    ServerHelloMessage shm(my_eph_key, sv_nonce, my_id, other_id, ds); 
-    return sw->sendMsg(&shm);
+    char *ds = NULL;
+    int ret = makeSignature("server", &ds);
+    if (ret > 0){
+        ServerHelloMessage shm(my_eph_key, sv_nonce, my_id, other_id, ds, ret); 
+        return sw->sendMsg(&shm);
+    } else {
+        return ret;
+    }
 }
 
 int SecureSocketWrapper::sendClientVerify(){
-    char* ds = makeSignature("client");
-    ClientVerifyMessage cvm(ds); 
-    return sw->sendMsg(&cvm);
+    char *ds = NULL;
+    int ret = makeSignature("client", &ds);
+    if (ret > 0){    
+        ClientVerifyMessage cvm(ds, ret); 
+        return sw->sendMsg(&cvm);
+    } else{
+        return ret;
+    }
 }
 
 void SecureSocketWrapper::generateKeys(const char* role){
@@ -404,27 +414,18 @@ int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
     return i;
 }
 
-char* SecureSocketWrapper::makeSignature(const char* role){
-    char* ds = (char*) malloc(DS_SIZE);
-    if (!ds){
-        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
-        return NULL;
-    }
-
+int SecureSocketWrapper::makeSignature(const char *role, char** ds){
     size_t msglen = buildMsgToSign(role, msg_to_sign_buf);
+
     if (msglen <= 0){
         LOG(LOG_ERR, "Error building message to sign!");
-        return NULL;
+        return -1;
     }
 
-    if (dsa_sign(msg_to_sign_buf, msglen, ds, my_priv_key) <= 0){
-        return NULL;
-    }
-
-    return ds;    
+    return dsa_sign(msg_to_sign_buf, msglen, ds, my_priv_key);
 }
 
-bool SecureSocketWrapper::checkSignature(char* ds, const char* role){
+bool SecureSocketWrapper::checkSignature(char* ds, size_t ds_size, const char* role){
     size_t msglen = buildMsgToSign(role, msg_to_sign_buf);
 
     if (msglen <= 0){
@@ -432,7 +433,7 @@ bool SecureSocketWrapper::checkSignature(char* ds, const char* role){
         return false;
     }
 
-    bool ret = dsa_verify(msg_to_sign_buf, msglen, ds, DS_SIZE, 
+    bool ret = dsa_verify(msg_to_sign_buf, msglen, ds, ds_size, 
                           X509_get_pubkey(other_cert));
 
     return ret;

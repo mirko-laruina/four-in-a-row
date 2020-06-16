@@ -466,13 +466,19 @@ void hkdf(char *key, size_t key_len,
     free(info);
 }
 
-int dsa_sign(char* msg, int msglen, char* signature,
+int dsa_sign(char* msg, int msglen, char** signature,
              EVP_PKEY *prvkey){
             unsigned int sign_len;
 
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     if (ctx == NULL){
         handleErrors();
+    }
+
+    *signature = (char*) malloc(EVP_PKEY_size(prvkey));
+    if (*signature == NULL){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return -1;
     }
 
     if (EVP_SignInit(ctx, EVP_sha256()) != 1){
@@ -483,7 +489,7 @@ int dsa_sign(char* msg, int msglen, char* signature,
         handleErrors();
     }
 
-    if (EVP_SignFinal(ctx, (unsigned char*) signature, &sign_len, prvkey) != 1){
+    if (EVP_SignFinal(ctx, (unsigned char*) *signature, &sign_len, prvkey) != 1){
         handleErrors();
     }
 

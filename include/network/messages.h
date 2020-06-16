@@ -426,16 +426,18 @@ class ClientVerifyMessage: public Message
 {
 private:
     char* ds;
+    uint32_t ds_size;
 
 public:
-    ClientVerifyMessage() : ds(NULL) {}
-    ClientVerifyMessage(char* ds) : ds(ds) {}
+    ClientVerifyMessage() : ds(NULL), ds_size(0) {}
+    ClientVerifyMessage(char* ds, uint32_t ds_size) : ds(ds), ds_size(ds_size) {}
     ~ClientVerifyMessage();
 
     MessageType getType() {return CLIENT_VERIFY; }
     string getName() { return "Client Verify message"; }
 
     char* getDs() { return ds; }
+    uint32_t getDsSize() { return ds_size; }
 
     msglen_t write(char* buffer);
     msglen_t read(char* buffer, msglen_t len);
@@ -449,11 +451,12 @@ private:
     string my_id;
     string other_id;
     char* ds;
+    uint32_t ds_size;
 
 public:
-    ServerHelloMessage() : eph_key(NULL), ds(NULL) {}
-    ServerHelloMessage(EVP_PKEY* eph_key, nonce_t nonce, string my_id, string other_id, char* ds) 
-        : eph_key(eph_key), nonce(nonce), my_id(my_id), other_id(other_id), ds(ds) {}
+    ServerHelloMessage() : eph_key(NULL), ds(NULL), ds_size(0) {}
+    ServerHelloMessage(EVP_PKEY* eph_key, nonce_t nonce, string my_id, string other_id, char* ds, uint32_t ds_size) 
+        : eph_key(eph_key), nonce(nonce), my_id(my_id), other_id(other_id), ds(ds), ds_size(ds_size) {}
     ~ServerHelloMessage();
 
     MessageType getType() {return SERVER_HELLO; }
@@ -465,6 +468,7 @@ public:
     string getMyId() { return my_id; }
     string getOtherId() { return other_id; }
     char* getDs() { return ds; }
+    uint32_t getDsSize() { return ds_size; }
 
     msglen_t write(char* buffer);
     msglen_t read(char* buffer, msglen_t len);

@@ -209,10 +209,10 @@ int main(){
 
     // dsa
     EVP_PKEY* mirko_key = load_key_file("mirko_key.pem", NULL);
-    char signature[1024];
+    char *signature;
     int sign_len = dsa_sign(plaintext, 
             strlen(plaintext)+1, 
-            signature, mirko_key
+            &signature, mirko_key
     );
     printf("Signature length: %d", sign_len);
     bool vfy = dsa_verify(plaintext, 

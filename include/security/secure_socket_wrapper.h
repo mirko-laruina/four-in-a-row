@@ -84,12 +84,12 @@ protected:
     /**
      * Make the signature for the handshake protocol
      */
-    char *makeSignature(const char *role);
+    int makeSignature(const char *role, char** ds);
 
     /**
      * Checks the signature for the handshake protocol
      */
-    bool checkSignature(char *ds, const char *role);
+    bool checkSignature(char *ds, size_t ds_size, const char *role);
 
     /**
      * Builds the message to be signed.

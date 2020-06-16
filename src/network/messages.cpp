@@ -326,8 +326,11 @@ msglen_t ServerHelloMessage::write(char* buffer){
     i+= strsize;
     strsize = writeUsername(other_id, &buffer[i]);
     i+= strsize;
-    memcpy(&buffer[i], ds, DS_SIZE);
-    i += DS_SIZE;
+    *((uint32_t*)&buffer[i]) = htonl(ds_size);
+    i += sizeof(ds_size);
+    memcpy(&buffer[i], ds, ds_size);
+    i += ds_size;
+    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
     int ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i);
     if (ret > 0){
         i += ret;
@@ -338,11 +341,6 @@ msglen_t ServerHelloMessage::write(char* buffer){
 }
 
 msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
-    ds = (char*) malloc(DS_SIZE);
-    if (!ds){
-        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
-        return 1;
-    }
     int i = 1;
     memcpy(&nonce, &buffer[i], sizeof(nonce));
     i += sizeof(nonce);
@@ -350,8 +348,16 @@ msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
     i += MAX_USERNAME_LENGTH + 1;
     other_id = readUsername(&buffer[i], len-i);
     i += MAX_USERNAME_LENGTH + 1;
-    memcpy(ds, &buffer[i], DS_SIZE);
-    i += DS_SIZE;
+    ds_size = ntohl(*((uint32_t*) &buffer[i]));
+    i += sizeof(ds_size);
+    ds = (char*) malloc(ds_size);
+    if (!ds){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return 1;
+    }
+    memcpy(ds, &buffer[i], ds_size);
+    i += ds_size;
+    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
     int ret = buf2pkey(&buffer[i], len-i, &eph_key);
     return ret > 0 ? 0 : 1;
 }
@@ -366,20 +372,26 @@ msglen_t ClientVerifyMessage::write(char* buffer){
     int i = 0;
     buffer[i] = (MessageType) CLIENT_VERIFY;
     i++;
-    memcpy(&buffer[i], ds, DS_SIZE);
-    i += DS_SIZE;
+    *((uint32_t*)&buffer[i]) = htonl(ds_size);
+    i += sizeof(ds_size);
+    memcpy(&buffer[i], ds, ds_size);
+    i += ds_size;
+    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
     return i;
 }
 
 msglen_t ClientVerifyMessage::read(char* buffer, msglen_t len){
-    ds = (char*) malloc(DS_SIZE);
+    int i = 1;
+    ds_size = ntohl(*((uint32_t*) &buffer[i]));
+    i += sizeof(ds_size);
+    ds = (char*) malloc(ds_size);
     if (!ds){
         LOG_PERROR(LOG_ERR, "Malloc failed: %s");
         return 1;
     }
-    int i = 1;
-    memcpy(ds, &buffer[i], DS_SIZE);
-    i += DS_SIZE;
+    memcpy(ds, &buffer[i], ds_size);
+    i += ds_size;
+    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
     return 0;
 }
 
