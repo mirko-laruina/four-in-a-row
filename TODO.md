@@ -10,3 +10,4 @@
  - [ ] REPORT!!
  - [x] variable size DS
  - [ ] check whether poll is required in RAND
+ - [ ] check memory with Valgrind
