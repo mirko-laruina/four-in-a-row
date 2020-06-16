@@ -41,9 +41,10 @@ inline size_t usernameLength(string s){
  * @param buflen the size of the buffer
  * @returns the read string
  */
-inline string readUsername(char* buf, size_t buflen){
-    size_t size = min(strnlen(buf, buflen-1), (size_t) MAX_USERNAME_LENGTH);
-    return string(buf, size);
+inline int readUsername(string *username, char* buf, size_t buf_len){
+    size_t size = min(strnlen(buf, buf_len-1), (size_t) MAX_USERNAME_LENGTH);
+    *username = string(buf, size);
+    return MAX_USERNAME_LENGTH+1;
 }
 
 /** 
@@ -55,7 +56,10 @@ inline string readUsername(char* buf, size_t buflen){
  * @param buf the buffer to write the string to
  * @returns number of written bytes
  */
-inline size_t writeUsername(string s, char* buf){
+inline int writeUsername(char* buf, size_t buf_len, string s){
+    if (buf_len < MAX_USERNAME_LENGTH+1){
+        return -1;
+    }
     size_t strsize = usernameLength(s);
     strncpy(buf, s.c_str(), strsize);
     memset(&buf[strsize], 0, MAX_USERNAME_LENGTH-strsize+1);
@@ -99,7 +103,8 @@ public:
     /** 
      * Write message to buffer
      * 
-     * @returns number of bytes written
+     * @returns >0 number of bytes written
+     * @returns  0 in case of errors 
      */
     virtual msglen_t write(char *buffer) = 0;
 

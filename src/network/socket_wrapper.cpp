@@ -152,6 +152,9 @@ int SocketWrapper::sendMsg(Message *msg){
     int len;
 
     msglen = msg->write(buffer_out+sizeof(msglen));
+    if (msglen == 0)
+        return 1;
+    
     pktlen = msglen + sizeof(msglen);
     *((msglen_t*)buffer_out) = MSGLEN_HTON(pktlen);
 

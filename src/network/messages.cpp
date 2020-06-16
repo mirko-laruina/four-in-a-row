@@ -15,6 +15,7 @@
 #include "network/inet_utils.h"
 
 #include "security/crypto_utils.h"
+#include "utils/buffer_io.h"
 
 Message* readMessage(char *buffer, msglen_t len){
     Message *m;
@@ -89,8 +90,14 @@ Message* readMessage(char *buffer, msglen_t len){
 }
 
 msglen_t StartGameMessage::write(char *buffer){
-    buffer[0] = (char) START_GAME_PEER;
-    return 1;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) START_GAME_PEER)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 
 msglen_t StartGameMessage::read(char *buffer, msglen_t len){
@@ -98,164 +105,301 @@ msglen_t StartGameMessage::read(char *buffer, msglen_t len){
 }
 
 msglen_t MoveMessage::write(char *buffer){
-    buffer[0] = (char) MOVE;
-    buffer[1] = col;
-    return 2;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) MOVE)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, col)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 
 msglen_t MoveMessage::read(char *buffer, msglen_t len){
-    if (len < 2)
-        return 1;
+    int i = 1;
+    int ret;
 
-    col = buffer[1];
+    if ((ret = readChar(&col, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
     return 0;
 }
 
 msglen_t RegisterMessage::write(char *buffer){
-    buffer[0] = (char) REGISTER;
-    size_t strsize = writeUsername(username, &buffer[1]);
-    return 1+strsize;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) REGISTER)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, username)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 
 msglen_t RegisterMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + MIN_USERNAME_LENGTH+1)
+    int i = 1;
+    int ret;
+
+    if ((ret = readUsername(&username, &buffer[i], len-i)) < 0)
         return 1;
-    username = readUsername(&buffer[1], len-1);
+    i += ret;
+
     return 0;
 }
 
 msglen_t ChallengeMessage::write(char *buffer){
-    buffer[0] = (char) CHALLENGE;
-    size_t strsize = writeUsername(username, &buffer[1]);
-    return 1+strsize;  
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, username)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 msglen_t ChallengeMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + MIN_USERNAME_LENGTH+1)
+    int i = 1;
+    int ret;
+
+    if ((ret = readUsername(&username, &buffer[i], len-i)) < 0)
         return 1;
-    username = readUsername(&buffer[1], len-1);
+    i += ret;
+
     return 0;
 }
 
 msglen_t GameEndMessage::write(char *buffer){
-    buffer[0] = (char) GAME_END;
-    return 1;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_END)) < 0)
+        return 0;
+    
+    i += ret;
+
+    return i;
 }
 msglen_t GameEndMessage::read(char *buffer, msglen_t len){
     return 0;
 }
 
 msglen_t UsersListMessage::write(char *buffer){
-    buffer[0] = (char) USERS_LIST;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) USERS_LIST)) < 0)
+        return 0;
+    i += ret;
+
     size_t strsize = min(usernames.size(), 
                          (size_t) ((MAX_USERNAME_LENGTH+1)*MAX_USERS));
     size_t padded_size = (strsize+MAX_USERNAME_LENGTH)/(MAX_USERNAME_LENGTH+1)*(MAX_USERNAME_LENGTH+1);
-    strncpy(&buffer[1], usernames.c_str(), strsize);
+    if ((int)padded_size > MAX_MSG_SIZE-i)
+        return 0;
+    strncpy(&buffer[i], usernames.c_str(), strsize);
     memset(&buffer[1+strsize], 0, padded_size-strsize+1);
-    return 2+padded_size;  
+    i += padded_size+1;
+
+    return i;
 }
+
 msglen_t UsersListMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + MIN_USERNAME_LENGTH+1)
+    int maxsize = min((MAX_USERNAME_LENGTH+1)*MAX_USERS, len-1);
+    if (maxsize <= 0){
         return 1;
-    usernames = string(&buffer[1], min((MAX_USERNAME_LENGTH+1)*MAX_USERS, len-1));
+    }
+
+    usernames = string(&buffer[1], maxsize);
     return 0;
 }
 
 msglen_t UsersListRequestMessage::write(char *buffer){
-    buffer[0] = (char) USERS_LIST_REQ;
-    *((uint32_t*)&buffer[1]) = htonl(offset);
-    return 1 + sizeof(offset);
+        int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) USERS_LIST_REQ)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUInt32(&buffer[i], MAX_MSG_SIZE-i, offset)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
+
 msglen_t UsersListRequestMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + sizeof(offset))
+    int i = 1;
+    int ret;
+
+    if ((ret = readUInt32(&offset, &buffer[i], len-i)) < 0)
         return 1;
-    offset = ntohl(*((uint32_t*) &buffer[1]));
+    i += ret;
+
     return 0;
 }
 
 msglen_t ChallengeForwardMessage::write(char *buffer){
-    buffer[0] = (char) CHALLENGE_FWD;
-    size_t strsize = writeUsername(username, &buffer[1]);
-    return 1+strsize;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE_FWD)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, username)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 msglen_t ChallengeForwardMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + MIN_USERNAME_LENGTH+1)
+    int i = 1;
+    int ret;
+
+    if ((ret = readUsername(&username, &buffer[i], len-i)) < 0)
         return 1;
-    username = readUsername(&buffer[1], len-1);
+    i += ret;
+
     return 0;
 }
 
 msglen_t ChallengeResponseMessage::write(char *buffer){
-    buffer[0] = (char) CHALLENGE_RESP;
-    buffer[1] = (char) response;
-    uint16_t nport = htons(listen_port);
-    memcpy(&buffer[2], &nport, sizeof(nport));
-    size_t strsize = writeUsername(username, &buffer[4]);
-    return 4+strsize;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE_RESP)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeBool(&buffer[i], MAX_MSG_SIZE-i, response)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUInt16(&buffer[i], MAX_MSG_SIZE-i, listen_port)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, username)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 msglen_t ChallengeResponseMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + 1 + 2 + MIN_USERNAME_LENGTH+1)
+    int i = 1;
+    int ret;
+
+    if ((ret = readBool(&response, &buffer[i], len-i)) < 0)
         return 1;
-    response = (bool) buffer[1];
-    uint16_t nlisten_port;
-    memcpy(&nlisten_port, &buffer[2], sizeof(nlisten_port));
-    listen_port = ntohs(nlisten_port);
-    username = readUsername(&buffer[4], len-4);
+    i += ret;
+
+    if ((ret = readUInt16(&listen_port, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
+    if ((ret = readUsername(&username, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
     return 0;
 }
 
 msglen_t GameCancelMessage::write(char *buffer){
-    buffer[0] = (char) GAME_CANCEL;
-    size_t strsize = writeUsername(username, &buffer[1]);
-    return 1+strsize; 
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_CANCEL)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, username)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 msglen_t GameCancelMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + MIN_USERNAME_LENGTH+1)
+    int i = 1;
+    int ret;
+
+    if ((ret = readUsername(&username, &buffer[i], len-i)) < 0)
         return 1;
-    username = readUsername(&buffer[1], len-1);
+    i += ret;
+
     return 0;
 }
 
 msglen_t GameStartMessage::write(char *buffer){
     int i = 0;
-    buffer[i] = (char) GAME_START;
-    i++;
+    int ret;
 
-    sockaddr_in_to_buffer(addr, &buffer[i]);
-    i += SERIALIZED_SOCKADDR_IN_LEN;
-    size_t strsize = writeUsername(username, &buffer[i]);
-    i += strsize;
-    size_t available_len = MAX_MSG_SIZE - i;
-    size_t certsize = cert2buf(&cert, &buffer[i], available_len);    
-    i += certsize;
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_START)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeSockAddrIn(&buffer[i], MAX_MSG_SIZE-i, addr)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, username)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE - i)) < 0)
+        return 0;    
+    i += ret;
+
     return i;
 }
 
 msglen_t GameStartMessage::read(char *buffer, msglen_t len){
-    if (len < 1 + SERIALIZED_SOCKADDR_IN_LEN + MIN_USERNAME_LENGTH+1)
+    int i = 1;
+    int ret;
+
+    if ((ret = readSockAddrIn(&addr, &buffer[i], len-i)) < 0)
         return 1;
-    int offset = 1;
-    addr = buffer_to_sockaddr_in(&buffer[1]);
-    offset += SERIALIZED_SOCKADDR_IN_LEN;
-    username = readUsername(&buffer[offset], len-offset);
-    offset += MAX_USERNAME_LENGTH + 1;
-    int ret = buf2cert(&buffer[offset], len - offset, &cert);
-    if (ret < 0){
+    i += ret;
+
+    if ((ret = readUsername(&username, &buffer[i], len-i)) < 0)
         return 1;
-    }
+    i += ret;
+    
+    if ((ret = buf2cert(&buffer[i], len - i, &cert)) < 0)
+        return 1;
+    i += ret;
+    
     return 0;
 }
 
 msglen_t SecureMessage::write(char* buffer){
     int i = 0;
+    int ret;
 
-    buffer[i] = (char) SECURE_MESSAGE;
-    i++;
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) SECURE_MESSAGE)) < 0)
+        return 0;
+    i += ret;
 
-    memcpy(&buffer[i], ct, ct_size);
-    i += ct_size;
+    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, ct, ct_size)) < 0)
+        return 0;
+    i += ret;
 
-    memcpy(&buffer[i], tag, TAG_SIZE);
-    i += TAG_SIZE;
+    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, tag, TAG_SIZE)) < 0)
+        return 0;
+    i += ret;
 
     return i;
 }
@@ -270,43 +414,67 @@ msglen_t SecureMessage::read(char* buffer, msglen_t len){
     }
 
     int i = 1;
+    int ret;
 
-    memcpy(ct, &buffer[i], ct_size);
-    i += ct_size;
-    memcpy(tag, &buffer[i], TAG_SIZE);
+    if ((ret = readBuf(ct, ct_size, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+    
+    if ((ret = readBuf(tag, TAG_SIZE, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+    
     return 0;
 }
 
 msglen_t ClientHelloMessage::write(char* buffer){
     int i = 0;
-    buffer[i] = (MessageType) CLIENT_HELLO;
-    i++;
-    memcpy(&buffer[i], &nonce, sizeof(nonce));
-    i += sizeof(nonce);
-    size_t strsize;
-    strsize = writeUsername(my_id, &buffer[i]);
-    i+= strsize;
-    strsize = writeUsername(other_id, &buffer[i]);
-    i+= strsize;
-    int ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i);
-    if (ret > 0){
-        i += ret;
-        return i;
-    } else {
-        return -1;
-    }
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CLIENT_HELLO)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, (char*) &nonce, sizeof(nonce))) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, my_id)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, other_id)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 
 msglen_t ClientHelloMessage::read(char* buffer, msglen_t len){
     int i = 1;
-    memcpy(&nonce, &buffer[i], sizeof(nonce));
-    i += sizeof(nonce);
-    my_id = readUsername(&buffer[i], len-i);
-    i += MAX_USERNAME_LENGTH + 1;
-    other_id = readUsername(&buffer[i], len-i);
-    i += MAX_USERNAME_LENGTH + 1;
-    int ret = buf2pkey(&buffer[i], len-i, &eph_key);
-    return ret > 0 ? 0 : 1;
+    int ret;
+
+    if ((ret = readBuf((char*)&nonce, sizeof(nonce), &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
+    if ((ret = readUsername(&my_id, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
+    if ((ret = readUsername(&other_id, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+    
+    if((ret = buf2pkey(&buffer[i], len-i, &eph_key)) < 0)
+        return 1;
+    i += ret;
+
+    return 0;
 }
 
 ServerHelloMessage::~ServerHelloMessage(){
@@ -317,49 +485,74 @@ ServerHelloMessage::~ServerHelloMessage(){
 
 msglen_t ServerHelloMessage::write(char* buffer){
     int i = 0;
-    buffer[i] = (MessageType) SERVER_HELLO;
-    i++;
-    memcpy(&buffer[i], &nonce, sizeof(nonce));
-    i += sizeof(nonce);
-    size_t strsize;
-    strsize = writeUsername(my_id, &buffer[i]);
-    i+= strsize;
-    strsize = writeUsername(other_id, &buffer[i]);
-    i+= strsize;
-    *((uint32_t*)&buffer[i]) = htonl(ds_size);
-    i += sizeof(ds_size);
-    memcpy(&buffer[i], ds, ds_size);
-    i += ds_size;
-    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
-    int ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i);
-    if (ret > 0){
-        i += ret;
-        return i;
-    } else {
-        return -1;
-    }
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) SERVER_HELLO)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, (char*) &nonce, sizeof(nonce))) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, my_id)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, other_id)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUInt32(&buffer[i], MAX_MSG_SIZE-i, ds_size)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, ds, ds_size)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
+        return 0;
+    i += ret;
+
+    return i;
 }
 
 msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
     int i = 1;
-    memcpy(&nonce, &buffer[i], sizeof(nonce));
-    i += sizeof(nonce);
-    my_id = readUsername(&buffer[i], len-i);
-    i += MAX_USERNAME_LENGTH + 1;
-    other_id = readUsername(&buffer[i], len-i);
-    i += MAX_USERNAME_LENGTH + 1;
-    ds_size = ntohl(*((uint32_t*) &buffer[i]));
-    i += sizeof(ds_size);
+    int ret;
+
+    if ((ret = readBuf((char*)&nonce, sizeof(nonce), &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
+    if ((ret = readUsername(&my_id, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
+    if ((ret = readUsername(&other_id, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
+    if ((ret = readUInt32(&ds_size, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
     ds = (char*) malloc(ds_size);
     if (!ds){
         LOG_PERROR(LOG_ERR, "Malloc failed: %s");
         return 1;
     }
-    memcpy(ds, &buffer[i], ds_size);
-    i += ds_size;
-    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
-    int ret = buf2pkey(&buffer[i], len-i, &eph_key);
-    return ret > 0 ? 0 : 1;
+
+    if ((ret = readBuf(ds, ds_size, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+    
+    if((ret = buf2pkey(&buffer[i], len-i, &eph_key)) < 0)
+        return 1;
+    i += ret;
+
+    return 0;
 }
 
 ClientVerifyMessage::~ClientVerifyMessage(){
@@ -370,34 +563,54 @@ ClientVerifyMessage::~ClientVerifyMessage(){
 
 msglen_t ClientVerifyMessage::write(char* buffer){
     int i = 0;
-    buffer[i] = (MessageType) CLIENT_VERIFY;
-    i++;
-    *((uint32_t*)&buffer[i]) = htonl(ds_size);
-    i += sizeof(ds_size);
-    memcpy(&buffer[i], ds, ds_size);
-    i += ds_size;
-    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CLIENT_VERIFY)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeUInt32(&buffer[i], MAX_MSG_SIZE-i, ds_size)) < 0)
+        return 0;
+    i += ret;
+
+    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, ds, ds_size)) < 0)
+        return 0;
+    i += ret;
+
     return i;
 }
 
 msglen_t ClientVerifyMessage::read(char* buffer, msglen_t len){
-    int i = 1;
-    ds_size = ntohl(*((uint32_t*) &buffer[i]));
-    i += sizeof(ds_size);
+   int i = 1;
+    int ret;
+
+    if ((ret = readUInt32(&ds_size, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
     ds = (char*) malloc(ds_size);
     if (!ds){
         LOG_PERROR(LOG_ERR, "Malloc failed: %s");
         return 1;
     }
-    memcpy(ds, &buffer[i], ds_size);
-    i += ds_size;
-    LOG(LOG_DEBUG, "ds_size = %u", ds_size);
+
+    if ((ret = readBuf(ds, ds_size, &buffer[i], len-i)) < 0)
+        return 1;
+    i += ret;
+
     return 0;
 }
 
 msglen_t CertificateRequestMessage::write(char* buffer){
-    buffer[0] = (MessageType) CERT_REQ;
-    return 1;
+    int i = 0;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CERT_REQ)) < 0)
+        return 0;
+    
+    i += ret;
+
+    return i;
 }
 
 msglen_t CertificateRequestMessage::read(char* buffer, msglen_t len){
@@ -406,12 +619,17 @@ msglen_t CertificateRequestMessage::read(char* buffer, msglen_t len){
 
 msglen_t CertificateMessage::write(char* buffer){
     int i = 0;
-    buffer[i] = (MessageType) CERTIFICATE;
-    i++;
-    int ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE-1);
-    if (ret <= 0)
-        return -1;
+    int ret;
+
+    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CERTIFICATE)) < 0)
+        return 0;
+    
     i += ret;
+
+    if ((ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE-1)) < 0)
+        return 0;
+    i += ret;
+
     return i;
 }
 

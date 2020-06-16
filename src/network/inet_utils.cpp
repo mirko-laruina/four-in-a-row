@@ -89,24 +89,31 @@ string sockaddr_in_to_string(struct sockaddr_in src){
     return s;
 }
 
-void sockaddr_in_to_buffer(struct sockaddr_in src, char* buffer){
+int writeSockAddrIn(char* buffer, size_t buf_len, struct sockaddr_in src){
+    if (buf_len < SERIALIZED_SOCKADDR_IN_LEN)
+        return -1;
+    
     memcpy(buffer, 
             &src.sin_addr.s_addr, 
             sizeof(src.sin_addr.s_addr));
     memcpy(buffer+sizeof(src.sin_addr.s_addr), 
             &src.sin_port, 
             sizeof(src.sin_port));
+    return SERIALIZED_SOCKADDR_IN_LEN;
 }
 
-struct sockaddr_in buffer_to_sockaddr_in(char* buffer){
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    memcpy(&addr.sin_addr.s_addr,
+int readSockAddrIn(struct sockaddr_in *dst, char* buffer, size_t buf_len){
+    if (buf_len < SERIALIZED_SOCKADDR_IN_LEN){
+        return -1;
+    }
+
+    memset(dst, 0, sizeof(*dst));
+    dst->sin_family = AF_INET;
+    memcpy(&(dst->sin_addr.s_addr),
         buffer, 
-        sizeof(addr.sin_addr.s_addr));
-    memcpy(&addr.sin_port,
-        buffer+sizeof(addr.sin_addr.s_addr), 
-        sizeof(addr.sin_port));
-    return addr;
+        sizeof(dst->sin_addr.s_addr));
+    memcpy(&(dst->sin_port),
+        buffer+sizeof(dst->sin_addr.s_addr), 
+        sizeof(dst->sin_port));
+    return SERIALIZED_SOCKADDR_IN_LEN;
 }

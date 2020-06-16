@@ -100,7 +100,7 @@ string sockaddr_in_to_string(struct sockaddr_in src);
  * @param src   the input address
  * @param buffer the buffer
  */
-void sockaddr_in_to_buffer(struct sockaddr_in src, char* buffer);
+int writeSockAddrIn(char* buffer, size_t buf_len, struct sockaddr_in src);
 
 /**
  * Deerializes sockaddr_in structure from given buffer.
@@ -108,6 +108,6 @@ void sockaddr_in_to_buffer(struct sockaddr_in src, char* buffer);
  * @param buffer the buffer
  * @return the built sockaddr_in struct
  */
-struct sockaddr_in buffer_to_sockaddr_in(char* buffer);
+int readSockAddrIn(struct sockaddr_in *src, char* buffer, size_t buf_len);
 
 #endif
