@@ -35,7 +35,13 @@ public:
      */
     ~Server();
 
+    /**
+     * @brief Get and set the server certificate through a CERTIFICATE REQUEST (and then waits a CERTIFICATE)
+     * 
+     * @return 0 in case of success, 1 in case of error
+     */
     int getServerCert();
+
     /**
      * Registers the user in the server.
      * 
