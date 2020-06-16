@@ -131,7 +131,7 @@ void get_rand(char* buffer, int bytes);
  * @param file_name     file name of the certificate
  * @return X509*        the certificate ptr, NULL if not read correctly
  */
-X509 *load_cert_file(char *file_name);
+X509 *load_cert_file(const char *file_name);
 
 /**
  * @brief Load certificate revocation list from file
@@ -139,7 +139,7 @@ X509 *load_cert_file(char *file_name);
  * @param file_name    file name
  * @return X509_CRL*   the CRL, NULL if not read correctly
  */
-X509_CRL *load_crl_file(char *file_name);
+X509_CRL *load_crl_file(const char *file_name);
 
 /**
  * @brief Load a key from file
@@ -148,7 +148,7 @@ X509_CRL *load_crl_file(char *file_name);
  * @param password      key password
  * @return X509*        the key ptr, NULL if not read correctly
  */
-EVP_PKEY *load_key_file(char *file_name, char* password);
+EVP_PKEY *load_key_file(const char *file_name, const char* password);
 
 /**
  * @brief Build a CA store from CA certificate and CRL

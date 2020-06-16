@@ -217,8 +217,9 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, char **shared_key)
     // "Dummy" derivation to extract key len
     EVP_PKEY_derive(derivation_ctx, NULL, &shared_key_len);
     *shared_key = (char *)malloc(shared_key_len);
-    if (!shared_key)
+    if (!*shared_key)
     {
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
         handleErrors();
     }
 
@@ -262,7 +263,7 @@ void get_rand(char* buffer, int bytes){
  * @param file_name     file name of the certificate
  * @return X509*        the certificate ptr, NULL if not read correctly
  */
-X509 *load_cert_file(char *file_name)
+X509 *load_cert_file(const char *file_name)
 {
     FILE *cert_file = fopen(file_name, "r");
     if (!cert_file)
@@ -281,14 +282,14 @@ X509 *load_cert_file(char *file_name)
  * @param password      key password
  * @return X509*        the key ptr, NULL if not read correctly
  */
-EVP_PKEY *load_key_file(char *file_name, char* password)
+EVP_PKEY *load_key_file(const char *file_name, const char* password)
 {
     FILE *key_file = fopen(file_name, "r");
     if (!key_file)
     {
         return NULL;
     }
-    EVP_PKEY *key = PEM_read_PrivateKey(key_file, NULL, NULL, password);
+    EVP_PKEY *key = PEM_read_PrivateKey(key_file, NULL, NULL, (void*) password);
     fclose(key_file);
     return key;
 }
@@ -299,7 +300,7 @@ EVP_PKEY *load_key_file(char *file_name, char* password)
  * @param file_name    file name
  * @return X509_CRL*   the CRL, NULL if not read correctly
  */
-X509_CRL *load_crl_file(char *file_name)
+X509_CRL *load_crl_file(const char *file_name)
 {
     FILE *crl_file = fopen(file_name, "r");
     if (!crl_file)
@@ -378,7 +379,6 @@ int hmac(char *msg, int msg_len, char *key, unsigned int keylen,
 {
     const EVP_MD *md = EVP_sha256();
     unsigned int hash_size = EVP_MD_size(md);
-    hmac = (char *)malloc(hash_size);
 
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_Init_ex(ctx, key, keylen, md, NULL);
@@ -451,6 +451,10 @@ void hkdf(char *key, size_t key_len,
     // label is a string, we remove the termination null char
     size_t info_len = sizeof(nonce_t) * 2 + strlen(label);
     char *info = (char *)malloc(info_len);
+    if (!info){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %ss");
+        throw "Malloc error";
+    }
     char *info_buf = info;
     strcpy((char *)info_buf, label);
     info_buf += strlen(label);

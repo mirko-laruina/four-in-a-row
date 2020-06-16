@@ -30,9 +30,9 @@ typedef uint16_t msglen_t;
 #define MSGLEN_HTON(x) htons((x))
 #define MSGLEN_NTOH(x) ntohs((x))
 
-/** Utility for getting username size */
-inline size_t usernameSize(string s){
-    return min(strlen(s.c_str()), (size_t) MAX_USERNAME_LENGTH)+1;
+/** Utility for getting username length (excluding '\0') */
+inline size_t usernameLength(string s){
+    return min(strlen(s.c_str()), (size_t) MAX_USERNAME_LENGTH);
 }
 
 /** Utility for getting username from buffer
@@ -56,10 +56,10 @@ inline string readUsername(char* buf, size_t buflen){
  * @returns number of written bytes
  */
 inline size_t writeUsername(string s, char* buf){
-    size_t strsize = usernameSize(s);
+    size_t strsize = usernameLength(s);
     strncpy(buf, s.c_str(), strsize);
-    buf[strsize-1] = '\0'; // make sure it is null terminated
-    return strsize;
+    memset(&buf[strsize], 0, MAX_USERNAME_LENGTH-strsize+1);
+    return MAX_USERNAME_LENGTH+1;
 }
 
 /**
@@ -428,7 +428,7 @@ private:
     char* ds;
 
 public:
-    ClientVerifyMessage() {}
+    ClientVerifyMessage() : ds(NULL) {}
     ClientVerifyMessage(char* ds) : ds(ds) {}
     ~ClientVerifyMessage();
 
@@ -451,7 +451,7 @@ private:
     char* ds;
 
 public:
-    ServerHelloMessage(){}
+    ServerHelloMessage() : eph_key(NULL), ds(NULL) {}
     ServerHelloMessage(EVP_PKEY* eph_key, nonce_t nonce, string my_id, string other_id, char* ds) 
         : eph_key(eph_key), nonce(nonce), my_id(my_id), other_id(other_id), ds(ds) {}
     ~ServerHelloMessage();

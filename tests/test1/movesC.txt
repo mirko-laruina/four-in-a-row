@@ -1,4 +1,4 @@
-peer 127.0.0.1 12345
+peer 127.0.0.1 12345 ../certs/up_cert.pem
 X
 1
 2

@@ -10,12 +10,12 @@
 
 #include "single_player.h"
 #include <iostream>
+#include "utils/args.h"
 #include "connect4.h"
 
 using namespace std;
 
 int playSinglePlayer(){
-    char in_buffer[256];
     int choosen_col, adv_col;
     int win;
     Connect4 c;
@@ -24,8 +24,16 @@ int playSinglePlayer(){
 
     do {
         cout<<"> "<<flush;
-        cin.getline(in_buffer, sizeof(in_buffer));
-    } while (!c.setPlayer(in_buffer[0]));
+        Args args(cin);
+        if (args.getArgc() <0){
+            return 1;
+        } else if (args.getArgc() == 1 && c.setPlayer(args.getArgv(0)[0])){
+            break;
+        } else{
+            continue;
+        }
+    } while (1);
+
     cout<<"You are playing as "<<c.getPlayer()<<endl;
 
     cout<<"This is the starting board:"<<endl;
@@ -37,8 +45,14 @@ int playSinglePlayer(){
         cout<<"Write the column you want to insert the token to"<<endl;
         do {
             cout<<"> "<<flush;
-            cin.getline(in_buffer, sizeof(in_buffer));
-            choosen_col = in_buffer[0]-'0';
+            Args args(cin);
+            if (args.getArgc() == 1){
+                choosen_col = args.getArgv(0)[0]-'0';
+            } else if (args.getArgc() < 0){
+                return 1;
+            } else {
+                choosen_col = -1;
+            }
         } while(choosen_col < 0 || choosen_col > 7);
         
         win = c.play(choosen_col-1, c.getPlayer());

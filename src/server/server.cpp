@@ -76,6 +76,12 @@ void doubleUnlock(User* u_keep_lock, User* u_unlock){
 
 bool handleRegisterMessage(User* u, RegisterMessage* msg){
     string username = msg->getUsername();
+    string usernameCert = usernameFromCert(u->getSocketWrapper()->getCert());
+    if (username.compare(usernameCert) == 0){
+        LOG(LOG_WARN, "Malicious operation: %s tried to register as %s",
+                usernameCert.c_str(), username.c_str());
+        return false;
+    }
     u->setUsername(username);
 
     if (!user_list.exists(username)){

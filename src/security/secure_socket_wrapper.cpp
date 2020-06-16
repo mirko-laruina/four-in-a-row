@@ -57,6 +57,10 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
 
     msglen_t pt_len = sm->getCtSize();
     LOG(LOG_DEBUG, "Received SecureMessage of size %d", pt_len);
+    if (pt_len > MAX_SEC_MSG_SIZE){
+        LOG(LOG_ERR, "Message is too big");
+        return NULL;
+    }
 
     LOG(LOG_DEBUG, "Payload");
     DUMP_BUFFER_HEX_DEBUG(sm->getCt(), pt_len);
@@ -65,6 +69,11 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
 
     char *buffer_pt = (char*) malloc(pt_len);
     char buffer_aad[AAD_SIZE];
+
+    if (!buffer_pt){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return NULL;
+    }
 
     makeAAD(SECURE_MESSAGE, pt_len+TAG_SIZE+AAD_SIZE, buffer_aad);
     DUMP_BUFFER_HEX_DEBUG(buffer_aad, AAD_SIZE);
@@ -89,9 +98,9 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
     free(buffer_pt);
 
     if (m != NULL){
-        LOG(LOG_DEBUG, "Decrypted message of type %s", m->getName().c_str());
+        LOG(LOG_INFO, "Decrypted message of type %s", m->getName().c_str());
     } else{
-        LOG(LOG_DEBUG, "Malformed message");
+        LOG(LOG_WARN, "Malformed message");
     }
     return m;
 }
@@ -103,13 +112,24 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
     int ret;
 
     char buffer_pt[MAX_MSG_SIZE];
-    int buf_len = m->write(buffer_pt);
+    msglen_t buf_len = m->write(buffer_pt);
+    
+    if (buf_len > MAX_SEC_MSG_SIZE){
+        LOG(LOG_ERR, "Message is too big: %s", m->getName().c_str());
+        return NULL;
+    }
 
     char* buffer_ct = (char*) malloc(MAX_MSG_SIZE);
     char* buffer_tag = (char*) malloc(TAG_SIZE);
     char  buffer_aad[AAD_SIZE];
 
+    if (!buffer_ct || !buffer_tag){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return NULL;
+    }
+
     LOG(LOG_DEBUG, "Encrypting message of size %d", buf_len);
+    DUMP_BUFFER_HEX_DEBUG(buffer_pt, IV_SIZE);
 
     updateSendIV();
     makeAAD(SECURE_MESSAGE, buf_len+TAG_SIZE+AAD_SIZE, buffer_aad);
@@ -386,6 +406,10 @@ int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
 
 char* SecureSocketWrapper::makeSignature(const char* role){
     char* ds = (char*) malloc(DS_SIZE);
+    if (!ds){
+        LOG_PERROR(LOG_ERR, "Malloc failed: %s");
+        return NULL;
+    }
 
     size_t msglen = buildMsgToSign(role, msg_to_sign_buf);
     if (msglen <= 0){

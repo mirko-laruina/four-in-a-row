@@ -38,12 +38,10 @@ void printAvailableActions(){
 }
 
 int doAction(Args args, Server *server, SecureHost* peer_host){
-    ostringstream os;
-    os << args;
-    LOG(LOG_DEBUG, "Args: %s", os.str().c_str());
-    if (args.argc == 1 && strcmp(args.argv[0], "exit") == 0){
+    LOG(LOG_DEBUG, "Args: %s", args.c_str());
+    if (args.getArgc() == 1 && strcmp(args.getArgv(0), "exit") == 0){
         return -2;
-    } else if (args.argc == 1 && strcmp(args.argv[0], "list") == 0){
+    } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "list") == 0){
         cout<<"Retrieving the list of users..."<<endl;
         string userlist = server->getUserList();
         if (userlist.empty()){
@@ -51,9 +49,9 @@ int doAction(Args args, Server *server, SecureHost* peer_host){
         }
         cout<<"Online users: "<<userlist<<endl;
         return 0;
-    } else if (args.argc == 2 && strcmp(args.argv[0], "challenge") == 0){
-        cout<<"Sending challenge to "<<args.argv[1]<<" and waiting for response..."<<endl;
-        string username(args.argv[1]);
+    } else if (args.getArgc() == 2 && strcmp(args.getArgv(0), "challenge") == 0){
+        cout<<"Sending challenge to "<<args.getArgv(1)<<" and waiting for response..."<<endl;
+        string username(args.getArgv(1));
         int ret = server->challengePeer(username, peer_host);
         switch (ret){ 
             case -1: // refused
@@ -66,7 +64,9 @@ int doAction(Args args, Server *server, SecureHost* peer_host){
                 cout<<"Error connecting to server!"<<endl;
                 return 1;
         } 
-    } else{
+    } else if (args.getArgc() < 0) {
+        return -2; //exit
+    } else {
         return 0;
     }
 
@@ -76,15 +76,29 @@ int handleReceivedChallenge(Server *server,
                             ChallengeForwardMessage* msg, 
                             SecureHost* peer_host,
                             uint16_t* listen_port){
-    char in_buffer[2];
     cout<<endl<<"You received a challenge from "<<msg->getUsername()<<endl;
     cout<<"Do you want to accept? (y/n)";
+
+    bool response;
+
     do{
         cout<<"> "<<flush;
-        cin.getline(in_buffer, sizeof(in_buffer));
-    } while(strlen(in_buffer) != 0 && strcmp(in_buffer, "y") != 0 && strcmp(in_buffer, "n") != 0);
+        Args args(cin);
+        LOG(LOG_DEBUG, "Args: %s", args.c_str());
+        if (args.getArgc() == 1 && strcmp(args.getArgv(0), "y") == 0){
+            response = true;
+            break;
+        } else if (args.getArgc() == 1 && strcmp(args.getArgv(0), "n") == 0){
+            response = false;
+            break;
+        } else if (args.getArgc() < 0){ // EOF
+            response = false;
+            break;
+        } else{
+            continue;
+        }
+    } while(1);
 
-    bool response = strcmp(in_buffer, "y") == 0;
 
     return server->replyPeerChallenge(msg->getUsername(), response, peer_host, listen_port);
 }
@@ -121,16 +135,15 @@ ConnectionMode handleMessage(Message* msg, Server* server){
 }
 
 ConnectionMode handleStdin(Server* server){
-    char in_buffer[256];
     SecureHost peer_host;
 
     int ret;
     // Input from user
-    cin.getline(in_buffer, sizeof(in_buffer));
-    if (strlen(in_buffer) == 0){
+    Args args(cin);
+    if (args.getArgc() < 0){
         ret = -2; // received EOF
     } else{
-        ret = doAction(Args(in_buffer), server, &peer_host);
+        ret = doAction(args, server, &peer_host);
     }
     switch (ret){
         case 0: // do nothing
