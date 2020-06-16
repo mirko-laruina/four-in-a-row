@@ -138,8 +138,8 @@ Message* SocketWrapper::receiveMsg(MessageType type[], int n_types){
                 if (m->getType() == type[i]){
                     return m;
                 }
-                LOG(LOG_WARN, "Received unexpected message of type %s",  m->getName().c_str());
             }
+            LOG(LOG_WARN, "Received unexpected message of type %s",  m->getName().c_str());
         }
     }
     //TODO: add timeout?
