@@ -1,6 +1,6 @@
 \section{Implementation}
 
-The source code is organized into N modules:
+The source code is organized into 4 modules:
 \begin{itemize}
     \item \emph{network}: contains common utilities for managing the network. 
         The two most important abstractions are the \emph{Message}, which 
@@ -26,8 +26,9 @@ The source code is organized into N modules:
         are bound to.
 \end{itemize}
 
-In the following, the main workflow of the client and server is illustrated.
-For a more in-depth description, please refer to the auto-generated 
+In the following, the main workflow of the client and server is first
+illustrated and then a brief explanation of some of the main utility components 
+is provided. For a more in-depth description, please refer to the auto-generated 
 Doxygen documentation or the source code itself.
 
 \subsection{Server}
@@ -230,4 +231,67 @@ operations depending on whose turn it is:
         and the turn is switched.
 \end{itemize}
  
- 
+\subsection{Main common utility component}
+
+\paragraph{Args} 
+The \emph{Args} class is used to safely parse user input from the standard 
+input. By securely, we mean that the user input is read in a \emph{C++ string}
+thus preventing possible buffer overflows. The class then returns an 
+``argc/argv''-like format.
+
+\paragraph{buffer\_io}
+The \emph{buffer\_io} module provides functions to read/write from a bounded 
+buffer. Before reading/writing a possible buffer overflow is checked and an 
+error return value is returned.
+
+\paragraph{crypto and crypto\_utils} 
+The \emph{crypto} module provides the implementation of the cryptographic 
+functions using OpenSSL, while the latter provides some utility functions 
+related to OpenSSL objects (e.g. serializing a public key or a certificate).
+
+\paragraph{messages}
+The \emph{messages} module provides the implementation of all messages. All 
+messages are a class that implements the \emph{Message} interface which 
+provides a common method to read or write from/to a buffer.
+By exploiting polymorphism, it is then easy to read a message from a buffer and
+to cast it to the correct class, through the \emph{readMessage} function.
+
+\paragraph{SocketWrapper}
+The \emph{SocketWrapper} provides convenient methods for sending and receiving
+\emph{messages}. Every message is encoded in the same way: 2 bytes for the 
+total length of the message, one byte for the message type (used to select 
+the class to use to read from it) and the body of the message. 
+When sending a message, the message is written to the output buffer using the
+\emph{write} method of the message, then the length is added in the heading 
+and the message is sent through the \emph{send} system call. 
+When reading a message, first the first two bytes are read to detect the 
+message length using the \emph{receive} system call with the \emph{WAIT\_ALL}
+flag, then the remainder of the message is read to the input buffer using the
+same system call. The buffer is then passed to the \emph{readMessage} function
+that will return a pointer to \emph{Message}, which has been cast to the 
+correct type. 
+
+\paragraph{SecureSocketWrapper}
+The \emph{SocketWrapper} provides the same abstraction of \emph{SocketWrapper}
+but with the additional layer of security. Only a selected range of messages
+is allowed to be sent or received in plain text (i.e. \emph{certificate 
+request}, \emph{certificate}, \emph{client hello}, \emph{server hello},
+\emph{client verify}). All other messages require peer authentication through 
+the handshake protocol, which is managed by the \emph{SecureSocketWrapper}
+itself which also manages all secure connection state variables (keys, IVs, 
+sequence numbers).
+To send any other message, encryption is required. In order to perform 
+encryption, the message is first written to a
+plain-text buffer, as is done in the \emph{SocketWrapper} sending method, 
+then the message is encrypted with AES-256 in GCM mode using the total message
+length and the message type as AAD. The resulting cipher-text and verification
+tag are then used to build a \emph{secure message} which is finally sent through
+the socket using a \emph{SocketWrapper}. Once a message is successfully sent, 
+the write sequence number is increased.
+To receive messages, the converse process is done: the \emph{secure message}
+is received from the \emph{SocketWrapper}, cipher-text and tag are extracted,
+cipher-text is decrypted in a decryption buffer which is passed to the 
+\emph{readMessage} function that will return a pointer to \emph{Message}, which 
+has been cast to the correct type. Tag is verified in the decryption function
+of AES-256-GCM and, in case of verification failure, an error value is returned.
+Once a message is successfully read, the write sequence number is increased.
