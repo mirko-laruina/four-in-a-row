@@ -17,10 +17,10 @@
 #include <string.h>
 #include "logging.h"
 
-#define TAG_SIZE     16  // TODO check
-#define IV_SIZE      12  // TODO check
-#define KEY_SIZE     16  // TODO check
-#define ECDH_SIZE    32  // TODO check
+/** AES-256 GCM */
+#define TAG_SIZE     16  
+#define IV_SIZE      12  
+#define KEY_SIZE     16  
 
 typedef uint32_t nonce_t;
 
