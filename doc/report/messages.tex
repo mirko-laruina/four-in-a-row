@@ -71,6 +71,7 @@ Server reply to a \texttt{SERVER HELLO} message.
 		& \bitbox{32}{\texttt{server ephemeral key}} \\
 		& \bitbox{32}{\texttt{...}}\\
 		& \bitbox{32}{\texttt{server ephemeral key}} \\
+		& \bitbox{4}{\texttt{ds\_size}} \\
 		\begin{rightwordgroup}{DS}
 			\bitbox{32}{\texttt{digital signature}} \\
 			\bitbox{32}{...} \\
@@ -96,7 +97,8 @@ Client sends its digital signature.
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
 		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{3}} \\
+		& \bitbox{1}{\texttt{3}}
+		& \bitbox{4}{\texttt{ds\_size}} \\
 		\begin{rightwordgroup}{DS}
 			\bitbox{32}{\texttt{digital signature}} \\
 			\bitbox{32}{...} \\
@@ -116,7 +118,7 @@ Client sends its digital signature.
 Message sent when an user wants to start a game with another peer.
 \begin{figure}[h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{3}
 		\bitheader{0-2} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{4}}
@@ -133,7 +135,7 @@ Message sent when an user wants to start a game with another peer.
 Message containing the next move of the user
 \begin{figure}[!htbp]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{4}
 		\bitheader{0-3} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{5}}
@@ -153,7 +155,7 @@ Message containing the next move of the user
 Registers user to the server.
 \begin{figure}[h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{19}
 		\bitheader{0-18} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{6}}
@@ -174,11 +176,11 @@ Registers user to the server.
 Sends a challenge to a user.
 \begin{figure}[h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
-		\bitheader{0-31} \\
+	\begin{bytefield}[bitwidth=1.1em]{19}
+		\bitheader{0-18} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{7}}
-		& \bitbox{32}{\texttt{username (16 bytes)}}
+		& \bitbox{16}{\texttt{username (16 bytes)}}
 	\end{bytefield}
 	\caption{Challenge message format}
 \end{figure}
@@ -194,7 +196,7 @@ Sends a challenge to a user.
 Signals end of the match.
 \begin{figure}[!htbp]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{3}
 		\bitheader{0-2} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{8}} 
@@ -234,7 +236,7 @@ Transports the list of all the active users.
 Requests the list of all the active users
 \begin{figure}[!h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{7}
 		\bitheader{0-6} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{10}}
@@ -253,7 +255,7 @@ Requests the list of all the active users
 Message forwarded from the server to the peer to signal an incoming challenge.
 \begin{figure}[!h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{19}
 		\bitheader{0-18} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{11}}
@@ -272,7 +274,7 @@ Message forwarded from the server to the peer to signal an incoming challenge.
 Message carrying the response to a challenge.
 \begin{figure}[!h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{22}
 		\bitheader{0-21} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{12}}
@@ -295,7 +297,7 @@ Message carrying the response to a challenge.
 Message through which the server forwards a challenge rejectal or another event that caused the game to be canceled.
 \begin{figure}[!h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{19}
 		\bitheader{0-18} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{13}}
@@ -339,7 +341,7 @@ Message through which the server makes a new game start between two peers. Sent 
 Used by a client to request the server certificate.
 \begin{figure}[!h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{32}
+	\begin{bytefield}[bitwidth=1.1em]{3}
 		\bitheader{0-2} \\
 		\bitbox{2}{\texttt{len}} 
 		& \bitbox{1}{\texttt{15}}
