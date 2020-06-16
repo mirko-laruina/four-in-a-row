@@ -103,7 +103,6 @@ int main(int argc, char** argv){
     }
 
     X509* cert = load_cert_file(argv[1]);
-    EVP_PKEY* key = load_key_file(argv[2], NULL);
     X509* cacert = load_cert_file(argv[3]);
     X509_CRL* crl = load_crl_file(argv[4]);
     X509_STORE* store = build_store(cacert, crl);
@@ -115,6 +114,15 @@ int main(int argc, char** argv){
     printWelcome();
     cout<<endl<<"Welcome to 4-in-a-row!"<<endl;
     cout<<"The rules of the game are simple: you win when you have 4 connected tokens along any direction."<<endl;
+
+    EVP_PKEY* key;
+    do {
+        key = load_key_file(argv[2], NULL);
+        if( key == NULL ){
+            cout<<"Wrong password"<<endl;
+        }
+    } while(!key);
+    cout<<endl;
 
     do{
         struct ConnectionMode ucc = promptChooseConnection();
