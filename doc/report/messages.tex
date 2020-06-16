@@ -5,9 +5,9 @@ Carries an encrypted message.
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{0}} 
-		& \bitbox{29}{\texttt{ciphertext}} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{0}} 
+		& \bitbox{8}{\texttt{ciphertext}} \\
 		& \bitbox{32}{\texttt{...}} \\
 		& \bitbox{32}{\texttt{ciphertext}} \\
 		\begin{rightwordgroup}{TAG - 16 bytes}
@@ -30,11 +30,11 @@ Sent by a client when a new connection has to be started.
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{1}} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{1}} \\
 		& \bitbox{32}{\texttt{nonce}} \\
-		& \bitbox{16}{\texttt{client id}}
-		& \bitbox{16}{\texttt{server id}} \\
+		& \bitbox{32}{\texttt{client id (16 bytes)}} \\
+		& \bitbox{32}{\texttt{server id (16 bytes)}} \\
 		& \bitbox{32}{\texttt{eph key}} \\
 		& \bitbox{32}{\texttt{...}}\\
 		& \bitbox{32}{\texttt{eph key}}
@@ -56,11 +56,11 @@ Server reply to the previous message.
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{2}} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{2}} \\
 		& \bitbox{32}{\texttt{nonce}} \\
-		& \bitbox{16}{\texttt{server id}}
-		& \bitbox{16}{\texttt{client id}} \\
+		& \bitbox{32}{\texttt{server id (16 bytes)}} \\
+		& \bitbox{32}{\texttt{client id (16 bytes)}} \\
 		\begin{rightwordgroup}{DS}
 			\bitbox{32}{\texttt{digital signature}} \\
 			\bitbox{32}{...} \\
@@ -84,8 +84,8 @@ Client sends its digital signature.
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{3}} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{3}} \\
 		\begin{rightwordgroup}{DS}
 			\bitbox{32}{\texttt{digital signature}} \\
 			\bitbox{32}{...} \\
@@ -105,9 +105,9 @@ Message sent when an user wants to start a game with another peer.
 \begin{figure}[h]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{16}
-		\bitheader{0-2} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{4}}
+		\bitheader{0-23} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{4}}
 	\end{bytefield}
 \end{figure}
 
@@ -121,17 +121,17 @@ Message containing the next move of the user
 \begin{figure}[!htbp]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{16}
-		\bitheader{0-3} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{5}}
-		& \bitbox{1}{\texttt{c}}
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{5}}
+		& \bitbox{8}{\texttt{column}}
 	\end{bytefield}
 \end{figure}
 
 \begin{itemize}
 	\item len: length of the message
 	\item 4: type of the message (MOVE)
-	\item c: chosen column where to insert the token
+	\item column: chosen column where to insert the token
 \end{itemize}
 
 
@@ -139,11 +139,11 @@ Message containing the next move of the user
 Registers user to the server.
 \begin{figure}[h]
 	\centering
-	\begin{bytefield}[bitwidth=1.1em]{16}
-		\bitheader{0-18} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{6}} 
-		& \bitbox{16}{\texttt{username}}
+	\begin{bytefield}[bitwidth=1.1em]{32}
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{6}} \\
+		& \bitbox{32}{\texttt{username (16 bytes)}}
 	\end{bytefield}
 \end{figure}
 
@@ -158,10 +158,10 @@ Sends a challenge to a user.
 \begin{figure}[h]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{16}
-		\bitheader{0-18} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{7}} 
-		& \bitbox{16}{\texttt{username}}
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{7}} \\
+		& \bitbox{32}{\texttt{username (16 bytes)}}
 	\end{bytefield}
 \end{figure}
 
@@ -176,9 +176,9 @@ Signals end of the match.
 \begin{figure}[!htbp]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{16}
-		\bitheader{0-2} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{8}} 
+		\bitheader{0-23} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{8}} 
 	\end{bytefield}
 \end{figure}
 
@@ -193,9 +193,9 @@ Transports the list of all the active users.
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{9}}
-		& \bitbox{29}{\texttt{usernames list}} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{9}}
+		& \bitbox{8}{\texttt{usernames list}} \\
 		& \bitbox{32}{\texttt{...}} \\
 		& \bitbox{32}{\texttt{usernames list}} \\ 
 	\end{bytefield}
@@ -212,8 +212,8 @@ Requests the list of all the active users
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{10}} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{10}} \\
 		& \bitbox{32}{\texttt{offset}} \\
 	\end{bytefield}
 \end{figure}
@@ -229,10 +229,10 @@ Message forwarded from the server to the peer to signal an incoming challenge.
 \begin{figure}[!h]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
-		\bitheader{0-18} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{11}}
-		& \bitbox{16}{\texttt{username}} \\
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{11}} \\
+		& \bitbox{32}{\texttt{username (16 bytes)}} \\
 	\end{bytefield}
 \end{figure}
 
@@ -247,11 +247,12 @@ Message carrying the response to a challenge.
 \begin{figure}[!h]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
-		\bitheader{0-26} \\
-		\bitbox{2}{\texttt{len}} 
-		& \bitbox{1}{\texttt{12}}
-		& \bitbox{8}{\texttt{response}}
-		& \bitbox{16}{\texttt{listen port}}
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{12}}
+		& \bitbox{8}{\texttt{response}} \\
+		& \bitbox{16}{\texttt{listen port}} \\
+		& \bitbox{32}{\texttt{username (16 bytes)}}  \\
 	\end{bytefield}
 \end{figure}
 
