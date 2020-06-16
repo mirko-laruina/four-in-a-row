@@ -264,3 +264,84 @@ Message carrying the response to a challenge.
 	\item username: username of the challenger
 \end{itemize}
 
+\subsection{\texttt{GAME CANCEL}}
+Message through which the server forwards a challenge rejectal or another event that caused the game to be canceled.
+\begin{figure}[!h]
+	\centering
+	\begin{bytefield}[bitwidth=1.1em]{32}
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{13}} \\
+		& \bitbox{32}{\texttt{username (16 bytes)}}  \\
+	\end{bytefield}
+\end{figure}
+
+\begin{itemize}
+	\item len: length of the message
+	\item 13: type of the message (GAME\_CANCEL)
+	\item username: username of the challenger
+\end{itemize}
+
+\subsection{\texttt{GAME START}}
+Message through which the server makes a new game start between two peers. Sent from the server to the peers.
+\begin{figure}[!h]
+	\centering
+	\begin{bytefield}[bitwidth=1.1em]{32}
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{14}}
+		& \bitbox{8}{\texttt{socket address}} \\
+		& \bitbox{32}{\texttt{socket address}} \\
+		& \bitbox{8}{\texttt{socket address}}
+		& \bitbox{24}{\texttt{username (16 bytes)}}  \\
+		& \bitbox{32}{\texttt{username (16 bytes)}}  \\
+		& \bitbox{32}{\texttt{certificate}} \\
+		& \bitbox{32}{\texttt{...}} \\
+		& \bitbox{32}{\texttt{certificate}} \\
+	\end{bytefield}
+\end{figure}
+
+\begin{itemize}
+	\item len: length of the message
+	\item 14: type of the message (GAME\_START)
+	\item socket address: listening address and port (sockaddr\_in) of the peer
+	\item username: username of the peer
+	\item certificate: certificate of the peer
+\end{itemize}
+
+\subsection{\texttt{CERTIFICATE REQUEST}}
+Used by a client to request the server certificate.
+\begin{figure}[!h]
+	\centering
+	\begin{bytefield}[bitwidth=1.1em]{32}
+		\bitheader{0-23} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{15}}
+	\end{bytefield}
+\end{figure}
+
+\begin{itemize}
+	\item len: length of the message
+	\item 15: type of the message (CERTIFICATE\_REQUEST)
+\end{itemize}
+
+\subsection{\texttt{CERTIFICATE}}
+Server response to the previous message.
+\begin{figure}[!h]
+	\centering
+	\begin{bytefield}[bitwidth=1.1em]{32}
+		\bitheader{0-31} \\
+		\bitbox{16}{\texttt{len}} 
+		& \bitbox{8}{\texttt{16}} \\
+		& \bitbox{32}{\texttt{certificate}} \\
+		& \bitbox{32}{\texttt{...}} \\
+		& \bitbox{32}{\texttt{certificate}} \\
+	\end{bytefield}
+\end{figure}
+
+\begin{itemize}
+	\item len: length of the message
+	\item 16: type of the message (CERTIFICATE)
+	\item certificate: server certificate
+\end{itemize}
+
