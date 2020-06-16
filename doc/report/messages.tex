@@ -10,12 +10,9 @@ Carries an encrypted message.
 		& \bitbox{8}{\texttt{ciphertext}} \\
 		& \bitbox{32}{\texttt{...}} \\
 		& \bitbox{32}{\texttt{ciphertext}} \\
-		\begin{rightwordgroup}{TAG - 16 bytes}
-			\bitbox{32}{\texttt{tag}} \\
-			\bitbox{32}{\texttt{...}} \\
-			\bitbox{32}{\texttt{tag}}
-		\end{rightwordgroup} \\
+		& \bitbox{32}{\texttt{tag (16 bytes)}}
 	\end{bytefield}
+	\caption{Secure message format}
 \end{figure}
 \begin{itemize}
 	\item len: length of the message
@@ -39,6 +36,7 @@ Sent by a client when a new connection has to be started.
 		& \bitbox{32}{\texttt{...}}\\
 		& \bitbox{32}{\texttt{eph key}}
 	\end{bytefield}
+	\caption{Client hello message format}
 \end{figure}
 
 \begin{itemize}
@@ -65,8 +63,9 @@ Server reply to the previous message.
 			\bitbox{32}{\texttt{digital signature}} \\
 			\bitbox{32}{...} \\
 			\bitbox{32}{\texttt{digital signature}}
-		\end{rightwordgroup} \\
+		\end{rightwordgroup}
 	\end{bytefield}
+	\caption{Server hello message format}
 \end{figure}
 
 \begin{itemize}
@@ -90,8 +89,9 @@ Client sends its digital signature.
 			\bitbox{32}{\texttt{digital signature}} \\
 			\bitbox{32}{...} \\
 			\bitbox{32}{\texttt{digital signature}}
-		\end{rightwordgroup} \\
+		\end{rightwordgroup}
 	\end{bytefield}
+	\caption{Client verify message format}
 \end{figure}
 
 \begin{itemize}
@@ -109,6 +109,7 @@ Message sent when an user wants to start a game with another peer.
 		\bitbox{16}{\texttt{len}} 
 		& \bitbox{8}{\texttt{4}}
 	\end{bytefield}
+	\caption{Start game peer message format}
 \end{figure}
 
 \begin{itemize}
@@ -126,6 +127,7 @@ Message containing the next move of the user
 		& \bitbox{8}{\texttt{5}}
 		& \bitbox{8}{\texttt{column}}
 	\end{bytefield}
+	\caption{Move message format}
 \end{figure}
 
 \begin{itemize}
@@ -145,6 +147,7 @@ Registers user to the server.
 		& \bitbox{8}{\texttt{6}} \\
 		& \bitbox{32}{\texttt{username (16 bytes)}}
 	\end{bytefield}
+	\caption{Register message format}
 \end{figure}
 
 \begin{itemize}
@@ -163,6 +166,7 @@ Sends a challenge to a user.
 		& \bitbox{8}{\texttt{7}} \\
 		& \bitbox{32}{\texttt{username (16 bytes)}}
 	\end{bytefield}
+	\caption{Challenge message format}
 \end{figure}
 
 \begin{itemize}
@@ -180,6 +184,7 @@ Signals end of the match.
 		\bitbox{16}{\texttt{len}} 
 		& \bitbox{8}{\texttt{8}} 
 	\end{bytefield}
+	\caption{Game end message format}
 \end{figure}
 
 \begin{itemize}
@@ -197,8 +202,9 @@ Transports the list of all the active users.
 		& \bitbox{8}{\texttt{9}}
 		& \bitbox{8}{\texttt{usernames list}} \\
 		& \bitbox{32}{\texttt{...}} \\
-		& \bitbox{32}{\texttt{usernames list}} \\ 
+		& \bitbox{32}{\texttt{usernames list}}
 	\end{bytefield}
+	\caption{Users list message format}
 \end{figure}
 
 \begin{itemize}
@@ -214,8 +220,9 @@ Requests the list of all the active users
 		\bitheader{0-31} \\
 		\bitbox{16}{\texttt{len}} 
 		& \bitbox{8}{\texttt{10}} \\
-		& \bitbox{32}{\texttt{offset}} \\
+		& \bitbox{32}{\texttt{offset}}
 	\end{bytefield}
+	\caption{Users list request message format}
 \end{figure}
 
 \begin{itemize}
@@ -232,8 +239,9 @@ Message forwarded from the server to the peer to signal an incoming challenge.
 		\bitheader{0-31} \\
 		\bitbox{16}{\texttt{len}} 
 		& \bitbox{8}{\texttt{11}} \\
-		& \bitbox{32}{\texttt{username (16 bytes)}} \\
+		& \bitbox{32}{\texttt{username (16 bytes)}}
 	\end{bytefield}
+	\caption{Challenge forward message format}
 \end{figure}
 
 \begin{itemize}
@@ -252,8 +260,9 @@ Message carrying the response to a challenge.
 		& \bitbox{8}{\texttt{12}}
 		& \bitbox{8}{\texttt{response}} \\
 		& \bitbox{16}{\texttt{listen port}} \\
-		& \bitbox{32}{\texttt{username (16 bytes)}}  \\
+		& \bitbox{32}{\texttt{username (16 bytes)}}
 	\end{bytefield}
+	\caption{Challenge response message format}
 \end{figure}
 
 \begin{itemize}
@@ -272,8 +281,9 @@ Message through which the server forwards a challenge rejectal or another event 
 		\bitheader{0-31} \\
 		\bitbox{16}{\texttt{len}} 
 		& \bitbox{8}{\texttt{13}} \\
-		& \bitbox{32}{\texttt{username (16 bytes)}}  \\
+		& \bitbox{32}{\texttt{username (16 bytes)}} 
 	\end{bytefield}
+	\caption{Game cancel message format}
 \end{figure}
 
 \begin{itemize}
@@ -297,8 +307,9 @@ Message through which the server makes a new game start between two peers. Sent 
 		& \bitbox{32}{\texttt{username (16 bytes)}}  \\
 		& \bitbox{32}{\texttt{certificate}} \\
 		& \bitbox{32}{\texttt{...}} \\
-		& \bitbox{32}{\texttt{certificate}} \\
+		& \bitbox{32}{\texttt{certificate}}
 	\end{bytefield}
+	\caption{Game start message format}
 \end{figure}
 
 \begin{itemize}
@@ -318,6 +329,7 @@ Used by a client to request the server certificate.
 		\bitbox{16}{\texttt{len}} 
 		& \bitbox{8}{\texttt{15}}
 	\end{bytefield}
+	\caption{Certificate request message format}
 \end{figure}
 
 \begin{itemize}
@@ -327,7 +339,8 @@ Used by a client to request the server certificate.
 
 \subsection{\texttt{CERTIFICATE}}
 Server response to the previous message.
-\begin{figure}[!h]
+
+\begin{figure}[!htbp]
 	\centering
 	\begin{bytefield}[bitwidth=1.1em]{32}
 		\bitheader{0-31} \\
@@ -335,8 +348,9 @@ Server response to the previous message.
 		& \bitbox{8}{\texttt{16}} \\
 		& \bitbox{32}{\texttt{certificate}} \\
 		& \bitbox{32}{\texttt{...}} \\
-		& \bitbox{32}{\texttt{certificate}} \\
+		& \bitbox{32}{\texttt{certificate}}
 	\end{bytefield}
+	\caption{Certificate response message format}
 \end{figure}
 
 \begin{itemize}
