@@ -165,6 +165,10 @@ public:
     Message *receiveMsg(MessageType type[], int n_types);
 
     Message *handleMsg(Message *msg);
+
+    int sendCertRequest();
+    int handleCertResponse(CertificateMessage* cm);
+
     int handleClientHello(ClientHelloMessage *chm);
     int handleServerHello(ServerHelloMessage *shm);
     int handleClientVerify(ClientVerifyMessage *cvm);
@@ -173,6 +177,7 @@ public:
     int sendServerHello();
     int sendClientVerify();
 
+    int sendPlain(Message *msg);
     /**
      * Sends the given message to the peer host through the socket.
      * 

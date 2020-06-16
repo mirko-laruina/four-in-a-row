@@ -396,7 +396,7 @@ msglen_t CertificateMessage::write(char* buffer){
     int i = 0;
     buffer[i] = (MessageType) CERTIFICATE;
     i++;
-    int ret = cert2buf(&cert, buffer, MAX_MSG_SIZE-1);
+    int ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE-1);
     if (ret <= 0)
         return -1;
     i += ret;
@@ -404,6 +404,6 @@ msglen_t CertificateMessage::write(char* buffer){
 }
 
 msglen_t CertificateMessage::read(char* buffer, msglen_t len){
-    int ret = buf2cert(buffer, len, &cert);
+    int ret = buf2cert(&buffer[1], len-1, &cert);
     return ret > 0 ? 0 : 1;
 }

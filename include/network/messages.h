@@ -492,6 +492,7 @@ public:
 
     MessageType getType() {return CERTIFICATE; }
     string getName() { return "Certificate message"; }
+    X509* getCert() { return cert; }
 
     msglen_t write(char* buffer);
     msglen_t read(char* buffer, msglen_t len);

@@ -189,7 +189,9 @@ Message *SecureSocketWrapper::handleMsg(Message* msg)
                 LOG(LOG_WARN, "Client sent CLIENT_VERIFY twice");
                 return NULL;
             }
-        // TODO certificate req-reply are allowed in cleartext
+        case CERTIFICATE:
+        case CERT_REQ:
+            return msg;
         default:
             LOG(LOG_WARN, "Peer sent %s in cleartext!", msg->getName().c_str());
             return NULL;
@@ -237,6 +239,15 @@ int SecureSocketWrapper::handleClientVerify(ClientVerifyMessage* cvm)
     return 0;
 }
 
+int SecureSocketWrapper::sendPlain(Message *msg)
+{
+    int ret = sw->sendMsg(msg);
+    if(ret == 0){
+        return 0;
+    }
+    return 1;
+}
+
 int SecureSocketWrapper::sendMsg(Message *msg)
 {
     SecureMessage *sm = encryptMsg(msg);
@@ -252,6 +263,11 @@ int SecureSocketWrapper::sendMsg(Message *msg)
     } else{
         return 1;
     }
+}
+
+int SecureSocketWrapper::sendCertRequest(){
+    CertificateRequestMessage crm;
+    return sw->sendMsg(&crm);
 }
 
 int SecureSocketWrapper::sendClientHello(){
@@ -517,7 +533,7 @@ ClientSecureSocketWrapper::ClientSecureSocketWrapper(X509* cert, EVP_PKEY* my_pr
 
 int ClientSecureSocketWrapper::connectServer(SecureHost host)
 {
-    if (!setOtherCert(host.getCert())){
+    if (host.getCert() != NULL && !setOtherCert(host.getCert())){
         LOG(LOG_ERR, "Peer certificate validation failed!");
         return -1;
     }

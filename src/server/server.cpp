@@ -289,11 +289,11 @@ bool handleClientVerifyMessage(User* u, ClientVerifyMessage* cvm){
 
 bool handleCertificateRequestMessage(User* u, CertificateRequestMessage* crm){
     CertificateMessage cm(cert);
-    int ret = u->getSocketWrapper()->sendMsg(&cm);
+    int ret = u->getSocketWrapper()->sendPlain(&cm);
     if(ret == 0){
         return true;
     } else {
-        LOG(LOG_ERR, "Error sending certificate to client!");
+        LOG(LOG_ERR, "Error sending certificate to client! Error %d", ret);
         u->setState(DISCONNECTED);
         return false;
     }

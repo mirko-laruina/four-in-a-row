@@ -35,6 +35,7 @@ public:
      */
     ~Server();
 
+    int getServerCert();
     /**
      * Registers the user in the server.
      * 
