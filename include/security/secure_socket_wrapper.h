@@ -58,8 +58,23 @@ protected:
      */
     SecureSocketWrapper(){};
 
+    /**
+     * @brief Derives the key
+     * 
+     * @param role          Role in the communication
+     */
     void generateKeys(const char *role);
+
+    /**
+     * @brief Calculates the IV to use when sending the next message
+     * 
+     */
     void updateSendIV();
+
+    /**
+     * @brief Calculates the IV to use when receiving a new message
+     * 
+     */
     void updateRecvIV();
 
     /** Internal initialization */
@@ -181,6 +196,12 @@ public:
     Message *receiveMsg(MessageType type[], int n_types);
 
     Message *handleMsg(Message *msg);
+
+
+    int sendCertRequest();
+
+    int handleCertResponse(CertificateMessage* cm);
+
     int handleClientHello(ClientHelloMessage *chm);
     int handleServerHello(ServerHelloMessage *shm);
     int handleClientVerify(ClientVerifyMessage *cvm);
@@ -189,6 +210,7 @@ public:
     int sendServerHello();
     int sendClientVerify();
 
+    int sendPlain(Message *msg);
     /**
      * Sends the given message to the peer host through the socket.
      * 

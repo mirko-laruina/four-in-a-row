@@ -66,8 +66,12 @@ struct ConnectionMode promptChooseConnection(){
             return ConnectionMode(CONNECT_TO_PEER, args.getArgv(1), 
                                         atoi(args.getArgv(2)), cert, 0);
                                         
-        } else if (args.getArgc() == 4 && strcmp(args.getArgv(0), "server") == 0){
-            X509* cert = load_cert_file(args.getArgv(3));
+        } else if (args.getArgc() >= 3 && strcmp(args.getArgv(0), "server") == 0){
+            X509* cert;
+            if(args.getArgc() == 4)
+                cert = load_cert_file(args.getArgv(3));
+            else
+                cert = NULL;
             return ConnectionMode(CONNECT_TO_SERVER, args.getArgv(1), 
                                         atoi(args.getArgv(2)), cert, 0);
                                         
