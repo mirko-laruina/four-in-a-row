@@ -1,10 +1,13 @@
-\section{Project Specification}
-The project consists in the implementation of a four-in-a-row application. It offers the possibility of playing offline (against the computer) and online.
+\section{Project introduction}
+The project consists in the implementation of a four-in-a-row application. 
+The user is proposed with the possibility of playing offline (against the computer) or online.
 
-When playing online, the communication is encrypted and both the server and the clients have certificates so that the authentication is guaranteed.
+When playing online, the communication is encrypted and authenticated.
+Both the server and the clients have a certificate. The server holds all the certificates of the users registered to it and, when a game has to start between two players, sends the certificate of the other party to the users.
 
+The two users establish a connection between themselves and can start playing their game.
 
-Since there are no main differences between the capabilities of a server and of a client, the protocol (defined below) is used both for the communication server-client than peer-peer.
+Since there are no main differences between the capabilities of a server and of a client, the protocol is used both for the communication server-client than peer-peer.
 
 This allows two playing modes:
 \begin{itemize}
@@ -13,6 +16,8 @@ This allows two playing modes:
 \end{itemize}
 
 We have chosen to implement the peer to peer mode, even if it wasn't a functional requirement, since it is useful for debugging purposes and its implementation is quite easy.
+
+It has to be noted that, after a game is concluded when playing in the server mode, the user is brought back to the server lobby since the relative connection is kept alive.
 
 During all the development of the application, we posed particular attention to the modularity of the software (see \nameref{ref:modules} section for more details).
 
