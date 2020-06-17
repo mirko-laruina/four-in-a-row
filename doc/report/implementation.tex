@@ -24,7 +24,14 @@ The source code is organized into 5 modules:
         thread-safe collection of users which can be retrieved (through an
         hash map) by either their username or the socket file descriptor they 
         are bound to.
-    \item \emph{client}: -----------------------------------------------
+    \item \emph{client}: implementation of the client executable, along with 
+        some private utility classes: \emph{Connect4}, which provides the game 
+        implementation, \emph{Server}, which proxies the client communication 
+        to the server by providing a more simple interface without having the 
+        client implement the networking logic. 
+        Furthermore, the \emph{multi\_player} and \emph{single\_player} modules 
+        provide the main functions to handle the game in the different 
+        circumstances.
 \end{itemize}
 
 In the following, the main workflow of the client and server is first
