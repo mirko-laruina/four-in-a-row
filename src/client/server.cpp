@@ -25,7 +25,7 @@ int Server::getServerCert()
 {
     sw->sendCertRequest();
     CertificateMessage *crm = dynamic_cast<CertificateMessage *>(sw->receiveMsg(CERTIFICATE));
-    if (sw->setOtherCert(crm->getCert()))
+    if (crm != NULL && sw->setOtherCert(crm->getCert()))
     {
         return 0;
     }
@@ -86,6 +86,9 @@ string Server::getUserList()
         return "";
     }
 
+    if (res_msg == NULL)
+        return "";
+
     string usernames = res_msg->getUsernames();
     delete res_msg;
 
@@ -115,6 +118,9 @@ int Server::challengePeer(string username, SecureHost *peerHost)
         connected = false;
         return 1;
     }
+
+    if (res_msg == NULL)
+        return 1;
 
     if (res_msg->getType() == GAME_CANCEL)
     {
@@ -158,6 +164,9 @@ int Server::replyPeerChallenge(string username, bool response, SecureHost *peerH
             connected = false;
             return 1;
         }
+
+        if (res_msg == NULL)
+            return 1;
 
         if (res_msg->getType() == GAME_CANCEL)
         {

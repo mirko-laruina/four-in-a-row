@@ -435,7 +435,7 @@ msglen_t ClientHelloMessage::write(char* buffer){
         return 0;
     i += ret;
 
-    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, (char*) &nonce, sizeof(nonce))) < 0)
+    if ((ret = writeUInt32(&buffer[i], MAX_MSG_SIZE-i, nonce)) < 0)
         return 0;
     i += ret;
 
@@ -458,7 +458,7 @@ msglen_t ClientHelloMessage::read(char* buffer, msglen_t len){
     int i = 1;
     int ret;
 
-    if ((ret = readBuf((char*)&nonce, sizeof(nonce), &buffer[i], len-i)) < 0)
+    if ((ret = readUInt32(&nonce, &buffer[i], len-i)) < 0)
         return 1;
     i += ret;
 
@@ -491,7 +491,7 @@ msglen_t ServerHelloMessage::write(char* buffer){
         return 0;
     i += ret;
 
-    if ((ret = writeBuf(&buffer[i], MAX_MSG_SIZE-i, (char*) &nonce, sizeof(nonce))) < 0)
+    if ((ret = writeUInt32(&buffer[i], MAX_MSG_SIZE-i, nonce)) < 0)
         return 0;
     i += ret;
 
@@ -522,7 +522,7 @@ msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
     int i = 1;
     int ret;
 
-    if ((ret = readBuf((char*)&nonce, sizeof(nonce), &buffer[i], len-i)) < 0)
+    if ((ret = readUInt32(&nonce, &buffer[i], len-i)) < 0)
         return 1;
     i += ret;
 
