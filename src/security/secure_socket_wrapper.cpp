@@ -176,6 +176,8 @@ Message *SecureSocketWrapper::receiveAnyMsg()
 Message *SecureSocketWrapper::handleMsg(Message* msg)
 {
     Message* dm;
+    if (msg == NULL)
+        return NULL;
     switch(msg->getType()){
         case SECURE_MESSAGE:
             dm = decryptMsg((SecureMessage*) msg);
