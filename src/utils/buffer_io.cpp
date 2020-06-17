@@ -65,20 +65,20 @@ int writeUInt16(char* buf, size_t buf_size, uint16_t val){
     return sizeof(uint16_t);
 }
 
-int readChar(char *val, char* buf, size_t buf_size){
-    if (buf_size < sizeof(char))
+int readUInt8(uint8_t *val, char* buf, size_t buf_size){
+    if (buf_size < sizeof(uint8_t))
         return -1;
     
-    *val = buf[0];
-    return sizeof(char);
+    *val = (uint8_t) buf[0];
+    return sizeof(uint8_t);
 }
 
-int writeChar(char* buf, size_t buf_size, char val){
-    if (buf_size < sizeof(char))
+int writeUInt8(char* buf, size_t buf_size, uint8_t val){
+    if (buf_size < sizeof(uint8_t))
         return -1;
     
     buf[0] = val;
-    return sizeof(char);
+    return sizeof(uint8_t);
 }
 
 int readBuf(char *val, size_t len, char* buf, size_t buf_size){
