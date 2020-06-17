@@ -86,7 +86,7 @@ int readUInt16(uint16_t *val, char* buf, size_t buf_size);
 int writeUInt16(char* buf, size_t buf_size, uint16_t val);
 
 /**
- * Reads a char.
+ * Reads a uint8_t.
  * 
  * @param val the dest value
  * @param buf the source buffer
@@ -94,10 +94,10 @@ int writeUInt16(char* buf, size_t buf_size, uint16_t val);
  * @returns -1 in case of errors
  * @returns 1 number of read bytes
  */
-int readChar(char *val, char* buf, size_t buf_size);
+int readUInt8(uint8_t *val, char* buf, size_t buf_size);
 
 /**
- * Writes a char.
+ * Writes a uint8_t.
  * 
  * @param buf the dest buffer
  * @param buf_size the size of the buffer
@@ -105,7 +105,7 @@ int readChar(char *val, char* buf, size_t buf_size);
  * @returns -1 in case of errors
  * @returns 1 number of read bytes
  */
-int writeChar(char* buf, size_t buf_size, char val);
+int writeUInt8(char* buf, size_t buf_size, uint8_t val);
 
 
 /**

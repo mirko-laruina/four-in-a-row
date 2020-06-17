@@ -413,14 +413,14 @@ int SecureSocketWrapper::buildMsgToSign(const char* role, char* msg){
     memcpy(&msg[i], &sv_nonce, size);
     i += size;
 
-    size = pkey2buf(&A_eph_key, &msg[i], MAX_MSG_TO_SIGN_SIZE-i);
+    size = pkey2buf(A_eph_key, &msg[i], MAX_MSG_TO_SIGN_SIZE-i);
     if (size <= 0){
         LOG(LOG_ERR, "Error copying key to buffer");
         return 0;
     }
     i += size;
 
-    size = pkey2buf(&B_eph_key, &msg[i], MAX_MSG_TO_SIGN_SIZE-i);
+    size = pkey2buf(B_eph_key, &msg[i], MAX_MSG_TO_SIGN_SIZE-i);
     if (size <= 0){
         LOG(LOG_ERR, "Error copying key to buffer");
         return 0;

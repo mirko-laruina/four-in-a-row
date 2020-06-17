@@ -93,7 +93,7 @@ msglen_t StartGameMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) START_GAME_PEER)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) START_GAME_PEER)) < 0)
         return 0;
     i += ret;
 
@@ -108,11 +108,11 @@ msglen_t MoveMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) MOVE)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) MOVE)) < 0)
         return 0;
     i += ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, col)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, col)) < 0)
         return 0;
     i += ret;
 
@@ -123,7 +123,7 @@ msglen_t MoveMessage::read(char *buffer, msglen_t len){
     int i = 1;
     int ret;
 
-    if ((ret = readChar(&col, &buffer[i], len-i)) < 0)
+    if ((ret = readUInt8((uint8_t*)&col, &buffer[i], len-i)) < 0)
         return 1;
     i += ret;
 
@@ -134,7 +134,7 @@ msglen_t RegisterMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) REGISTER)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) REGISTER)) < 0)
         return 0;
     i += ret;
 
@@ -160,7 +160,7 @@ msglen_t ChallengeMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE)) < 0)
         return 0;
     i += ret;
 
@@ -185,7 +185,7 @@ msglen_t GameEndMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_END)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_END)) < 0)
         return 0;
     
     i += ret;
@@ -200,7 +200,7 @@ msglen_t UsersListMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) USERS_LIST)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) USERS_LIST)) < 0)
         return 0;
     i += ret;
 
@@ -230,7 +230,7 @@ msglen_t UsersListRequestMessage::write(char *buffer){
         int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) USERS_LIST_REQ)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) USERS_LIST_REQ)) < 0)
         return 0;
     i += ret;
 
@@ -256,7 +256,7 @@ msglen_t ChallengeForwardMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE_FWD)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE_FWD)) < 0)
         return 0;
     i += ret;
 
@@ -281,7 +281,7 @@ msglen_t ChallengeResponseMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE_RESP)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) CHALLENGE_RESP)) < 0)
         return 0;
     i += ret;
 
@@ -322,7 +322,7 @@ msglen_t GameCancelMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_CANCEL)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_CANCEL)) < 0)
         return 0;
     i += ret;
 
@@ -347,7 +347,7 @@ msglen_t GameStartMessage::write(char *buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_START)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) GAME_START)) < 0)
         return 0;
     i += ret;
 
@@ -359,7 +359,7 @@ msglen_t GameStartMessage::write(char *buffer){
         return 0;
     i += ret;
 
-    if ((ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE - i)) < 0)
+    if ((ret = cert2buf(cert, &buffer[i], MAX_MSG_SIZE - i)) < 0)
         return 0;    
     i += ret;
 
@@ -389,7 +389,7 @@ msglen_t SecureMessage::write(char* buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) SECURE_MESSAGE)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) SECURE_MESSAGE)) < 0)
         return 0;
     i += ret;
 
@@ -431,7 +431,7 @@ msglen_t ClientHelloMessage::write(char* buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CLIENT_HELLO)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) CLIENT_HELLO)) < 0)
         return 0;
     i += ret;
 
@@ -446,8 +446,8 @@ msglen_t ClientHelloMessage::write(char* buffer){
     if ((ret = writeUsername(&buffer[i], MAX_MSG_SIZE-i, other_id)) < 0)
         return 0;
     i += ret;
-
-    if ((ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
+    
+    if ((ret = pkey2buf(eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
         return 0;
     i += ret;
 
@@ -487,7 +487,7 @@ msglen_t ServerHelloMessage::write(char* buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) SERVER_HELLO)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) SERVER_HELLO)) < 0)
         return 0;
     i += ret;
 
@@ -511,7 +511,7 @@ msglen_t ServerHelloMessage::write(char* buffer){
         return 0;
     i += ret;
 
-    if ((ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
+    if ((ret = pkey2buf(eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
         return 0;
     i += ret;
 
@@ -565,7 +565,7 @@ msglen_t ClientVerifyMessage::write(char* buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CLIENT_VERIFY)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) CLIENT_VERIFY)) < 0)
         return 0;
     i += ret;
 
@@ -605,7 +605,7 @@ msglen_t CertificateRequestMessage::write(char* buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CERT_REQ)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) CERT_REQ)) < 0)
         return 0;
     
     i += ret;
@@ -621,12 +621,12 @@ msglen_t CertificateMessage::write(char* buffer){
     int i = 0;
     int ret;
 
-    if ((ret = writeChar(&buffer[i], MAX_MSG_SIZE-i, (char) CERTIFICATE)) < 0)
+    if ((ret = writeUInt8(&buffer[i], MAX_MSG_SIZE-i, (char) CERTIFICATE)) < 0)
         return 0;
     
     i += ret;
 
-    if ((ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE-1)) < 0)
+    if ((ret = cert2buf(cert, &buffer[i], MAX_MSG_SIZE-1)) < 0)
         return 0;
     i += ret;
 

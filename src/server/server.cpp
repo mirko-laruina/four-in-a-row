@@ -308,6 +308,9 @@ bool handleMessage(User* user, Message* raw_msg){
 
         Message* msg = user->getSocketWrapper()->handleMsg(raw_msg);
 
+        if (msg == NULL)
+            return false;
+
         LOG(LOG_INFO, "User %s (state %d) received a message of type %s",
             user->getUsername().c_str(), (int) user->getState(), msg->getName().c_str());
 
