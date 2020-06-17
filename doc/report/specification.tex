@@ -1,1 +1,29 @@
 \section{Project Specification}
+The project consists in the implementation of a four-in-a-row application. It offers the possibility of playing offline (against the computer) and online.
+
+When playing online, the communication is encrypted and both the server and the clients have certificates so that the authentication is guaranteed.\\
+Since there are no main differences between the capabilities of a server and of a client, the protocol (defined below) is used both for the communication server-client than peer-peer.
+
+This allows two playing modes:
+\begin{itemize}
+	\item Server lobby
+	\item Peer to peer
+\end{itemize}
+
+
+
+\subsection{Server lobby}
+In this mode, the user connects to a server. The server is responsible of handling all the active users, forwarding incoming challenges and setting up a match if the parties agree on it. \\
+An active user is a player actively connected to the server, he can be free or playing a match against another user.
+
+In particular, the server accepts different commands:
+\begin{itemize}
+	\item list : shows the list of all the active users
+	\item challenge username:  challenges the user with the specified username, if (s)he is available (s)he will be asked to accept or decline the challenge.
+	\item exit: ends the communication with the server
+\end{itemize}
+
+\subsection{Peer to peer}
+In peer to peer mode, the user can connect directly to another peer. For it to be possible, (s)he has to know the host and port where the receiving peer is listening.\\
+The existence of NATs makes this mode difficult to use when not in the LAN.
+
