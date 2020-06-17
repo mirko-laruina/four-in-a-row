@@ -4,53 +4,31 @@
 
 //TODO: prevent memcpy
 int pkey2buf(EVP_PKEY **key, char* buf, int buflen){
-    char *bio_buf;
-    long len;
-
-    BIO *bio = BIO_new(BIO_s_mem());
-    if (bio == NULL){
+    unsigned char* i2dbuff = NULL;
+    int size = i2d_PublicKey(*key, &i2dbuff);
+    if(size < 0 ){
         handleErrors();
         return -1;
     }
 
-    if (PEM_write_bio_PUBKEY(bio, *key) != 1){
-        handleErrors();
+    if(buflen < size){
+        throw "Buffer too small";
         return -1;
     }
 
-    len = BIO_get_mem_data(bio, &bio_buf);
-    if (len <= 0){
-        handleErrors();
-        return -1;
-    }
-
-    if (len > buflen){
-        LOG(LOG_ERR, "Buffer is too small: %ld > %d", len, buflen);
-        BIO_free(bio);
-        return -1;
-    }
-
-    memcpy(buf, bio_buf, len);
-    BIO_free(bio);
-
-    LOG(LOG_DEBUG, "Writing %ld bytes to buffer", len);
-
-    return len;
+    memcpy(buf, i2dbuff, size);
+    OPENSSL_free(i2dbuff);
+    return size;
 }
 
 
-int buf2pkey(char* buf, int buflen, EVP_PKEY **key){
-    BIO* bio = BIO_new_mem_buf(buf, buflen);
-    if (bio == NULL){
+int buf2pkey(char* buf, int buflen, EVP_PKEY *key){
+    LOG(LOG_ERR, "Buffer address  %d", buf);
+    key = d2i_PublicKey(EVP_PKEY_EC, (unsigned char **) &buf, buflen);
+    if( key == NULL){
         handleErrors();
         return -1;
     }
-
-    if (PEM_read_bio_PUBKEY(bio, key, NULL, NULL) == NULL){
-        handleErrors();
-    }
-
-    BIO_free(bio);
     return 1;
 }
 

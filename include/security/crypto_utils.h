@@ -41,7 +41,7 @@ int pkey2buf(EVP_PKEY **key, char* buf, int buflen);
  * @param key the key 
  * @returns 1 in case of success, <=0 otherwise
  */
-int buf2pkey(char* buf, int buflen, EVP_PKEY **key);
+int buf2pkey(char* buf, int buflen, EVP_PKEY *key);
 
 /**
  * Writes the cert internal byte representation to the given buffer.
