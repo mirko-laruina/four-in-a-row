@@ -47,7 +47,7 @@ public:
     /** 
      * Initialize using existing socket
      */
-    SocketWrapper(int sd) : socket_fd(sd) {}
+    SocketWrapper(int sd) : socket_fd(sd), buf_idx(0) {}
 
     ~SocketWrapper(){closeSocket();}
 

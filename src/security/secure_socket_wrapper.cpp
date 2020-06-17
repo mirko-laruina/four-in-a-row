@@ -152,7 +152,6 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
     }
 
     SecureMessage *sm = new SecureMessage(buffer_ct, ret, buffer_tag);
-
     return sm;
 }
 

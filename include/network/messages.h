@@ -496,7 +496,7 @@ class CertificateMessage: public Message
 private:
     X509* cert;
 public:
-    CertificateMessage(){}
+    CertificateMessage() : cert(NULL) {}
     CertificateMessage(X509* cert) : cert(cert) {}
 
     MessageType getType() {return CERTIFICATE; }

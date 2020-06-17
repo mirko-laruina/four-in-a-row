@@ -28,7 +28,7 @@ public:
     /**
      * Constructor
      */
-    Server(SecureHost host, X509* cert, EVP_PKEY* key, X509_STORE* store) : host(host) {sw = new ClientSecureSocketWrapper(cert, key, store);}
+    Server(SecureHost host, X509* cert, EVP_PKEY* key, X509_STORE* store) : host(host), connected(false) {sw = new ClientSecureSocketWrapper(cert, key, store);}
 
     /** 
      * Destructor
