@@ -359,7 +359,7 @@ msglen_t GameStartMessage::write(char *buffer){
         return 0;
     i += ret;
 
-    if ((ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE - i)) < 0)
+    if ((ret = cert2buf(cert, &buffer[i], MAX_MSG_SIZE - i)) < 0)
         return 0;    
     i += ret;
 
@@ -447,7 +447,7 @@ msglen_t ClientHelloMessage::write(char* buffer){
         return 0;
     i += ret;
     
-    if ((ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
+    if ((ret = pkey2buf(eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
         return 0;
     i += ret;
 
@@ -470,7 +470,7 @@ msglen_t ClientHelloMessage::read(char* buffer, msglen_t len){
         return 1;
     i += ret;
     
-    if((ret = buf2pkey(&buffer[i], len-i, eph_key)) < 0)
+    if((ret = buf2pkey(&buffer[i], len-i, &eph_key)) < 0)
         return 1;
     i += ret;
 
@@ -511,7 +511,7 @@ msglen_t ServerHelloMessage::write(char* buffer){
         return 0;
     i += ret;
 
-    if ((ret = pkey2buf(&eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
+    if ((ret = pkey2buf(eph_key, &buffer[i], MAX_MSG_SIZE-i)) < 0)
         return 0;
     i += ret;
 
@@ -548,7 +548,7 @@ msglen_t ServerHelloMessage::read(char* buffer, msglen_t len){
         return 1;
     i += ret;
     
-    if((ret = buf2pkey(&buffer[i], len-i, eph_key)) < 0)
+    if((ret = buf2pkey(&buffer[i], len-i, &eph_key)) < 0)
         return 1;
     i += ret;
 
@@ -626,7 +626,7 @@ msglen_t CertificateMessage::write(char* buffer){
     
     i += ret;
 
-    if ((ret = cert2buf(&cert, &buffer[i], MAX_MSG_SIZE-1)) < 0)
+    if ((ret = cert2buf(cert, &buffer[i], MAX_MSG_SIZE-1)) < 0)
         return 0;
     i += ret;
 

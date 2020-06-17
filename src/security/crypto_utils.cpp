@@ -2,17 +2,15 @@
 #include "security/crypto.h"
 #include "dirent.h"
 
-//TODO: prevent memcpy
-int pkey2buf(EVP_PKEY **key, char* buf, int buflen){
+int pkey2buf(EVP_PKEY *key, char* buf, int buflen){
     unsigned char* i2dbuff = NULL;
-    int size = i2d_PublicKey(*key, &i2dbuff);
+    int size = i2d_PUBKEY(key, &i2dbuff);
     if(size < 0 ){
         handleErrors();
         return -1;
     }
 
     if(buflen < size){
-        throw "Buffer too small";
         return -1;
     }
 
@@ -22,63 +20,38 @@ int pkey2buf(EVP_PKEY **key, char* buf, int buflen){
 }
 
 
-int buf2pkey(char* buf, int buflen, EVP_PKEY *key){
-    LOG(LOG_ERR, "Buffer address  %d", buf);
-    key = d2i_PublicKey(EVP_PKEY_EC, (unsigned char **) &buf, buflen);
-    if( key == NULL){
+int buf2pkey(char* buf, int buflen, EVP_PKEY **key){
+    const unsigned char **p = (const unsigned char**) &buf;
+    if (d2i_PUBKEY(key, p, buflen) == NULL){
         handleErrors();
         return -1;
     }
     return 1;
 }
 
-int cert2buf(X509 **cert, char* buf, int buflen){
-    char *bio_buf;
-    long len;
-
-    BIO *bio = BIO_new(BIO_s_mem());
-    if (bio == NULL){
+int cert2buf(X509 *cert, char* buf, int buflen){
+    unsigned char* i2dbuff = NULL;
+    int size = i2d_X509(cert, &i2dbuff);
+    if(size < 0 ){
         handleErrors();
         return -1;
     }
 
-    if (PEM_write_bio_X509(bio, *cert) != 1){
-        handleErrors();
+    if(buflen < size){
         return -1;
     }
 
-    len = BIO_get_mem_data(bio, &bio_buf);
-    if (len <= 0){
-        handleErrors();
-        return -1;
-    }
-
-    if (len > buflen){
-        LOG(LOG_ERR, "Buffer is too small: %ld > %d", len, buflen);
-        BIO_free(bio);
-        return -1;
-    }
-
-    memcpy(buf, bio_buf, len);
-    BIO_free(bio);
-
-    LOG(LOG_DEBUG, "Writing %ld bytes to buffer", len);
-
-    return len;
+    memcpy(buf, i2dbuff, size);
+    OPENSSL_free(i2dbuff);
+    return size;
 }
 
 int buf2cert(char* buf, int buflen, X509 **cert){
-    BIO* bio = BIO_new_mem_buf(buf, buflen);
-    if (bio == NULL){
+    const unsigned char **p = (const unsigned char**) &buf;
+    if (d2i_X509(cert, p, buflen) == NULL){
         handleErrors();
         return -1;
     }
-
-    if (PEM_read_bio_X509(bio, cert, NULL, NULL) == NULL){
-        handleErrors();
-    }
-
-    BIO_free(bio);
     return 1;
 }
 
