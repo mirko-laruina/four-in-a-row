@@ -8,5 +8,5 @@
  - [x] Hide username length by padding
  - [ ] REPORT!!
  - [x] variable size DS
- - [ ] check whether poll is required in RAND
+ - [x] check whether poll is required in RAND -> it's not
  - [ ] check memory with Valgrind

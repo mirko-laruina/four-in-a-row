@@ -240,7 +240,6 @@ int dhke(EVP_PKEY *my_key, EVP_PKEY *peer_pubkey, char **shared_key)
  */
 nonce_t get_rand()
 {
-    RAND_poll();
     nonce_t random_num;
     RAND_bytes((unsigned char *)&random_num, sizeof(random_num));
     return random_num;
@@ -253,7 +252,6 @@ nonce_t get_rand()
  * @param bytes number of bytes (buffer length)
  */
 void get_rand(char* buffer, int bytes){
-    RAND_poll();
     RAND_bytes((unsigned char*) buffer, bytes);
 }
 
