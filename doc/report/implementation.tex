@@ -1,6 +1,6 @@
 \section{Implementation}
-
-The source code is organized into 4 modules:
+\label{ref:modules}
+The source code is organized into 5 modules:
 \begin{itemize}
     \item \emph{network}: contains common utilities for managing the network. 
         The two most important abstractions are the \emph{Message}, which 
@@ -24,6 +24,7 @@ The source code is organized into 4 modules:
         thread-safe collection of users which can be retrieved (through an
         hash map) by either their username or the socket file descriptor they 
         are bound to.
+    \item \emph{client}: -----------------------------------------------
 \end{itemize}
 
 In the following, the main workflow of the client and server is first
