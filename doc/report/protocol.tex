@@ -66,13 +66,13 @@ Here are the steps that the parties A and B need to perform, shown also in figur
     \item \textbf{A generates} her random nonce $N_A$ and her ECDH ephemeral public key $K^E_A$.
     \item \textbf{A sends to B} her identifier $A$, B's identifier $B$, $N_A$ and $K^E_A$.
     \item \textbf{B generates} his random nonce $N_B$ and his ECDH ephemeral public key $K^E_B$.
-    \item \textbf{B computes} the digital signature using his public key $K_B$ over the plaintext:
+    \item \textbf{B computes} the digital signature using his private key $K_B$ over the plaintext:
     \begin{equation*}
             (A,B,N_A,K^E_A,N_B,K^E_B)
     \end{equation*}
     \item \textbf{B sends to A} his identifier $B$, A's identifier $A$, $N_B$, $K^E_B$ and his digital signature $S_B$.
     \item \textbf{A verifies} B's signature.
-    \item \textbf{A computes} the digital signature using her public key $K_A$ over the same plaintext as B did.
+    \item \textbf{A computes} the digital signature using her private key $K_A$ over the same plaintext as B did.
     \item \textbf{A sends to B} the digital signature.
     \item \textbf{B verifies} A's signature.
 \end{enumerate}
