@@ -1,7 +1,9 @@
 \section{Project Specification}
 The project consists in the implementation of a four-in-a-row application. It offers the possibility of playing offline (against the computer) and online.
 
-When playing online, the communication is encrypted and both the server and the clients have certificates so that the authentication is guaranteed.\\
+When playing online, the communication is encrypted and both the server and the clients have certificates so that the authentication is guaranteed.
+
+
 Since there are no main differences between the capabilities of a server and of a client, the protocol (defined below) is used both for the communication server-client than peer-peer.
 
 This allows two playing modes:
@@ -10,10 +12,23 @@ This allows two playing modes:
 	\item Peer to peer
 \end{itemize}
 
+We have chosen to implement the peer to peer mode, even if it wasn't a functional requirement, since it is useful for debugging purposes and its implementation is quite easy.
 
+During all the development of the application, we posed particular attention to the modularity of the software (see \nameref{ref:modules} section for more details).
+
+In particular, our development was divided in different phases which acted as building blocks:
+\begin{itemize}
+	\item \textit{offline} : the basic game was implemented (CLI, win conditions etc.)
+	\item \textit{networking} : a new layer was added and allowed playing over the network in an unsecure way (all messages in the clear). To avoid having to modify the code heavily in the next phase, an interface to utilize the socket was defined (\textit{SocketWrapper}).
+	\item \textit{security}: the cryptographic algorithms were implemented using the OpenSSL library and a SecureSocketWrapper was defined and used in the client and server applications.
+\end{itemize}
+
+To speed up the development, a Makefile and some unit test were written to automatically compile the code and check that the behaviour of the application was as designed.
 
 \subsection{Server lobby}
-In this mode, the user connects to a server. The server is responsible of handling all the active users, forwarding incoming challenges and setting up a match if the parties agree on it. \\
+In this mode, the user connects to a server. The server is responsible of handling all the active users, forwarding incoming challenges and setting up a match if the parties agree on it.
+
+
 An active user is a player actively connected to the server, he can be free or playing a match against another user.
 
 In particular, the server accepts different commands:
@@ -24,6 +39,8 @@ In particular, the server accepts different commands:
 \end{itemize}
 
 \subsection{Peer to peer}
-In peer to peer mode, the user can connect directly to another peer. For it to be possible, (s)he has to know the host and port where the receiving peer is listening.\\
+In peer to peer mode, the user can connect directly to another peer. For it to be possible, (s)he has to know the host and port where the receiving peer is listening.
+
+
 The existence of NATs makes this mode difficult to use when not in the LAN.
 
