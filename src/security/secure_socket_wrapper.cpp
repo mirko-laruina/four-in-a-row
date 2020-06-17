@@ -483,7 +483,7 @@ int SecureSocketWrapper::handshakeClient(){
     }
     LOG(LOG_INFO, "Client Hello sent");
     ServerHelloMessage *shm = dynamic_cast<ServerHelloMessage*>(receiveMsg(SERVER_HELLO));
-    if (handleServerHello(shm) != 0){
+    if (shm == NULL || handleServerHello(shm) != 0){
         LOG(LOG_ERR, "Error handling ServerHello!");
         return 1;
     } else{
@@ -495,7 +495,7 @@ int SecureSocketWrapper::handshakeClient(){
 int SecureSocketWrapper::handshakeServer(){
     ClientHelloMessage *chm = dynamic_cast<ClientHelloMessage*>(receiveMsg(CLIENT_HELLO));
 
-    if (handleClientHello(chm) != 0){
+    if (chm == NULL || handleClientHello(chm) != 0){
         LOG(LOG_ERR, "Error handling ClientHello!");
         return 1;
     }
