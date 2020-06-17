@@ -80,9 +80,15 @@ Message *SecureSocketWrapper::decryptMsg(SecureMessage *sm)
 
     updateRecvIV();
 
-    ret = aes_gcm_decrypt(sm->getCt(), pt_len, buffer_aad, AAD_SIZE,
-                              recv_key, recv_iv,
-                              buffer_pt, sm->getTag());
+    try{
+        ret = aes_gcm_decrypt(sm->getCt(), pt_len, buffer_aad, AAD_SIZE,
+                                recv_key, recv_iv,
+                                buffer_pt, sm->getTag());
+    } catch (const char *err_msg){
+        LOG(LOG_ERR, "Error: %s", err_msg);
+        free(buffer_pt);
+        return NULL;
+    }
 
     if (ret <= 0)
     {
@@ -134,10 +140,16 @@ SecureMessage *SecureSocketWrapper::encryptMsg(Message *m)
     updateSendIV();
     makeAAD(SECURE_MESSAGE, buf_len+TAG_SIZE+AAD_SIZE, buffer_aad);
     DUMP_BUFFER_HEX_DEBUG(buffer_aad, AAD_SIZE);
-
-    ret = aes_gcm_encrypt(buffer_pt, buf_len, buffer_aad, AAD_SIZE,
+    try{
+        ret = aes_gcm_encrypt(buffer_pt, buf_len, buffer_aad, AAD_SIZE,
                               send_key, send_iv,
                               buffer_ct, buffer_tag);
+    } catch(const char* err_msg){
+        LOG(LOG_ERR, "Error: %s", err_msg);
+        free(buffer_ct);
+        free(buffer_tag);
+        return NULL;
+    }
 
     LOG(LOG_DEBUG, "Message encrypted %d bytes with iv: ", ret);
     DUMP_BUFFER_HEX_DEBUG(send_iv, IV_SIZE);

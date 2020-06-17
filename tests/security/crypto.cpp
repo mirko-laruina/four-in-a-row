@@ -119,11 +119,11 @@ int main(){
     }
 
     // ECDH
-    char secretA[4096], secretB[4096];
+    char *secretA=NULL, *secretB=NULL;
     int lenA, lenB;
 
-    lenA = dhke(keyA, keyB, secretA);
-    lenB = dhke(keyA, keyB, secretB);
+    lenA = dhke(keyA, keyB, &secretA);
+    lenB = dhke(keyA, keyB, &secretB);
     printf("DHKE secret len: %d, %d\n", lenA, lenB);
     if (lenA != lenB || memcmp(secretA, secretB, lenA) != 0){
         printf("ECDH secret is different\n");
