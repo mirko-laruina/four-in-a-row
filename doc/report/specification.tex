@@ -1,4 +1,4 @@
-\section{Project introduction}
+\section{Project Specification}
 The project consists in the implementation of a four-in-a-row application. 
 The user is proposed with the possibility of playing offline (against the computer) or online.
 
@@ -7,32 +7,19 @@ Both the server and the clients have a certificate. The server holds all the cer
 
 The two users establish a connection between themselves and can start playing their game.
 
-Since there are no main differences between the capabilities of a server and of a client, the protocol is used both for the communication server-client than peer-peer.
-
-This allows two playing modes:
+We can distinguish two phases during our application lifetime:
 \begin{itemize}
 	\item Server lobby
 	\item Peer to peer
 \end{itemize}
 
-We have chosen to implement the peer to peer mode, even if it wasn't a functional requirement, since it is useful for debugging purposes and its implementation is quite easy.
+During the first phase, the user can see all the active users and can decide who (s)he wants to challenge.
+The peer to peer phase is the one in which the match happens. After it is concluded, both the players are brought back to the server lobby.
 
-It has to be noted that, after a game is concluded when playing in the server mode, the user is brought back to the server lobby since the relative connection is kept alive.
-
-During all the development of the application, we posed particular attention to the modularity of the software (see \nameref{ref:modules} section for more details).
-
-In particular, our development was divided in different phases which acted as building blocks:
-\begin{itemize}
-	\item \textit{offline} : the basic game was implemented (CLI, win conditions etc.)
-	\item \textit{networking} : a new layer was added and allowed playing over the network in an unsecure way (all messages in the clear). To avoid having to modify the code heavily in the next phase, an interface to utilize the socket was defined (\textit{SocketWrapper}).
-	\item \textit{security}: the cryptographic algorithms were implemented using the OpenSSL library and a SecureSocketWrapper was defined and used in the client and server applications.
-\end{itemize}
-
-To speed up the development, a Makefile and some unit test were written to automatically compile the code and check that the behaviour of the application was as designed.
+Notice that we have chosen to implement the peer to peer phase as a standalone gaming mode, even if it wasn't a functional requirement, since it is useful for debugging purposes and its implementation is quite easy. Between clients no certificate exchange is possible so the users can challenge only peers of which they know the certificate.
 
 \subsection{Server lobby}
 In this mode, the user connects to a server. The server is responsible of handling all the active users, forwarding incoming challenges and setting up a match if the parties agree on it.
-
 
 An active user is a player actively connected to the server, he can be free or playing a match against another user.
 
@@ -43,9 +30,18 @@ In particular, the server accepts different commands:
 	\item exit: ends the communication with the server
 \end{itemize}
 
-\subsection{Peer to peer}
-In peer to peer mode, the user can connect directly to another peer. For it to be possible, (s)he has to know the host and port where the receiving peer is listening.
+When a challenge is accepted, the user receives the certificate of the challenger (so does the other player) and he can start communicating with him as if it was a peer to peer connection.
 
+\subsection{Peer to peer}
+The peer to peer phase, which can be standalone as previously specified or following the starting of a match decided in the server lobby, is the phase in which the users connect directly to eachother.
+
+In order to be possible, one of the peers should listen to a port and the other should connect to it. In server mode, the information on the host and port are forwarded by the server itself, while if connecting directly to the peer, we have to have this knowledge beforehand.
 
 The existence of NATs makes this mode difficult to use when not in the LAN.
+
+\subsection{Remarks}
+Since there are no main differences between the server and clients capabilities, the protocol used is the same both for the communication server-client than peer-peer.
+
+
+
 
