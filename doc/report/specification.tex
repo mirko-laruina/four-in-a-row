@@ -14,9 +14,17 @@ We can distinguish two phases during our application lifetime:
 \end{itemize}
 
 During the first phase, the user can see all the active users and can decide who (s)he wants to challenge.
-The peer to peer phase is the one in which the match happens. After it is concluded, both the players are brought back to the server lobby.
+The peer to peer phase is the one in which the match happens. After it is concluded, both players are brought back to the server lobby.
 
 Notice that we have chosen to implement the peer to peer phase as a standalone gaming mode, even if it wasn't a functional requirement, since it is useful for debugging purposes and its implementation is quite easy. Between clients no certificate exchange is possible so the users can challenge only peers of which they know the certificate.
+
+\subsection{Application run}
+When a user runs the application, (s)he will be proposed with a welcoming screen in which all the commands are listed.
+\begin{itemize}
+	\item \textit{server host port [certificate]}: the user connects to the server listening on the provided host and port. The certificate is an optional parameter. If it is specified, it will be the one used for the communication, otherwise a \texttt{CERTIFICATE\_REQUEST} message will be issued to which the server will reply with its own certificate. The user is then brought in server lobby.
+	\item \textit{peer host port certificate}: the user connects to the peer listening on the provided host and port. The certificate has to be provided, otherwise the communication will not be possible. If the connection is successful, the match can begin.
+	\item \textit{peer listen\_port certificate}: the user will listen on the specified port and will wait for a connection from the peer having the specified certificate. The match will begin when the other peer connects to the host.
+\end{itemize}
 
 \subsection{Server lobby}
 In this mode, the user connects to a server. The server is responsible of handling all the active users, forwarding incoming challenges and setting up a match if the parties agree on it.
