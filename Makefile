@@ -83,11 +83,11 @@ $(DOCDIR)/$(SRCPDFNAME): $(OBJDIR)/sources.pdf $(OBJDIR)/makefile.pdf
 	pdfunite $(OBJDIR)/makefile.pdf $(OBJDIR)/sources.pdf $(DOCDIR)/$(SRCPDFNAME)
 
 # Builds everything (ecutables and documentation)
-all: exe $(DOCDIR)/$(DOCPDFNAME) $(DOCDIR)/$(SRCPDFNAME)
+all: exe $(DOCDIR)/$(DOCPDFNAME) $(DOCDIR)/$(SRCPDFNAME) report
 
 # clean everything
 clean:
-	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(DOCDIR)/$(DOCPDFNAME) $(DOCDIR)/$(SRCPDFNAME) 
+	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(DOCDIR)/$(DOCPDFNAME) $(DOCDIR)/$(SRCPDFNAME)  doc/report/report.pdf
 
 # clean everything and then rebuild
 rebuild: clean all
@@ -119,10 +119,16 @@ test: exe
 			i=$$(($$i+1)); \
 		done; \
 		echo "Passed $$pass out of $$i"
+
+doc/report/report.pdf: doc/report/*.tex
+	cd doc/report; latexmk -pdf report.tex
+
+report: doc/report/report.pdf
 		
 help:
 	@echo "all:         builds everything (both binaries and documentation)"
 	@echo "clean:       deletes any intermediate or output file in build/, dist/ and doc/"
+	@echo "report:      builds the report only"
 	@echo "doc:         builds documentation only and opens pdf file"
 	@echo "doc_open:    opens documentation pdf"
 	@echo "exe:         builds only binaries"
@@ -132,7 +138,7 @@ help:
 	@echo "test:        runs all tests defined in tests/*.sh"
 
 # these targets aren't name of files
-.PHONY: all exe clean rebuild doc_open doc help source
+.PHONY: all exe clean rebuild doc_open doc help source report
 
 # build project structure
 $(shell   mkdir -p $(DOCDIR) $(addprefix $(OBJDIR)/,$(FOLDERS)) $(BINDIR)/client $(BINDIR)/server  test)
