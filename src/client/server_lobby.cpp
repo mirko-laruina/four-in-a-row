@@ -33,7 +33,7 @@ void printAvailableActions(){
     cout<<"You can list users, challenge a user, exit or simply wait for other users to challenge you."<< endl;
     cout<<"To list users type: `list`"<< endl;
     cout<<"To challenge a user type: `challenge username`"<< endl;
-    cout<<"To exit type: `exit`"<< endl;
+    cout<<"To disconnect type: `exit`"<< endl;
     cout<<"NB: you cannot receive challenges if you are challenging another user"<< endl;
 }
 
