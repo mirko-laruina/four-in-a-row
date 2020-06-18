@@ -1,5 +1,21 @@
 \section{Implementation}
+
+\subsection{Development}
+During all the development of the application, we posed particular attention to the modularity of the software.
+
+In particular, our development was divided in different phases which acted as building blocks:
+\begin{itemize}
+	\item \textit{offline} : the basic game was implemented (CLI, win conditions etc.)
+	\item \textit{networking} : a new layer was added and allowed playing over the network in an ``insecure'' way (all messages in the clear). To avoid having to modify the code heavily in the next phase, an interface to utilize the socket was defined (\emph{SocketWrapper}).
+	\item \textit{security}: the cryptographic algorithms were implemented using the OpenSSL library and a \emph{SecureSocketWrapper} was defined and used in the client and server applications.
+\end{itemize}
+
+To speed up the development, a \emph{Makefile} and some automated tests were written to automatically compile the code and check that the behavior of the application was as designed. By simply running \texttt{make test} all three 
+possible game modes are tested by spawning dummy processes.
+
+\subsection{Source code overview}
 \label{ref:modules}
+
 The source code is organized into 5 modules:
 \begin{itemize}
     \item \emph{network}: contains common utilities for managing the network. 
@@ -36,7 +52,7 @@ The source code is organized into 5 modules:
 
 In the following, the main workflow of the client and server is first
 illustrated and then a brief explanation of some of the main utility components 
-is provided. For a more in-depth description, please refer to the auto-generated 
+is provided. For a more in-depth description, please refer to the auto-generated
 Doxygen documentation or the source code itself.
 
 \subsection{Server}
@@ -303,15 +319,3 @@ cipher-text is decrypted in a decryption buffer which is passed to the
 has been cast to the correct type. Tag is verified in the decryption function
 of AES-256-GCM and, in case of verification failure, an error value is returned.
 Once a message is successfully read, the write sequence number is increased.
-
-\subsection{Development phases}
-During all the development of the application, we posed particular attention to the modularity of the software.
-
-In particular, our development was divided in different phases which acted as building blocks:
-\begin{itemize}
-	\item \textit{offline} : the basic game was implemented (CLI, win conditions etc.)
-	\item \textit{networking} : a new layer was added and allowed playing over the network in an unsecure way (all messages in the clear). To avoid having to modify the code heavily in the next phase, an interface to utilize the socket was defined (\textit{SocketWrapper}).
-	\item \textit{security}: the cryptographic algorithms were implemented using the OpenSSL library and a SecureSocketWrapper was defined and used in the client and server applications.
-\end{itemize}
-
-To speed up the development, a Makefile and some unit test were written to automatically compile the code and check that the behaviour of the application was as designed.
