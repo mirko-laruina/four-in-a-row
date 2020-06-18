@@ -46,7 +46,7 @@ void printWelcome(){
 
 struct ConnectionMode promptChooseConnection(){
     cout<<"You can connect to a server, wait for a peer or connect to a peer"<< endl;
-    cout<<"To connect to a server type: `server host port path/to/server_cert.pem`"<< endl;
+    cout<<"To connect to a server type: `server host port [path/to/server_cert.pem]`"<< endl;
     cout<<"To connect to a peer type: `peer host port path/to/peer_cert.pem`"<< endl;
     cout<<"To wait for a peer type: `peer listen_port path/to/peer_cert.pem`"<< endl;
     cout<<"To play offline type: `offline`"<< endl;
